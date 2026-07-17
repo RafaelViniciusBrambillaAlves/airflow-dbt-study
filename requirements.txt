@@ -1,4 +1,4 @@
 # Airflow-side dependencies only.
 # dbt-core / dbt-duckdb are intentionally NOT here — they live in the
-# isolated venv built in the Dockerfile (see comment there).
+# isolated venv built in the Dockerfile (see comment there). 
 astronomer-cosmos[dbt-duckdb]>=1.11.0,<2.0

@@ -10,7 +10,7 @@ FROM astrocrpublic.azurecr.io/runtime:3.0-9
 # bumps a shared dependency. Cosmos's ExecutionMode.VIRTUALENV keeps dbt in
 # a fully isolated venv that Cosmos calls as a subprocess, so an Airflow
 # upgrade can never break dbt and vice-versa. The trade-off is a slightly
-# heavier image build and one extra RUN step here.
+# heavier image build and one extra RUN step here. 
 # ---------------------------------------------------------------------------
 
 # 1) Build the isolated dbt virtualenv used by Cosmos (ExecutionMode.VIRTUALENV)

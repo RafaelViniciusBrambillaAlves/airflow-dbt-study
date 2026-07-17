@@ -1,4 +1,4 @@
 # OS-level (apt) packages for the Astro runtime image.
 # Empty for now — DuckDB needs no system packages.
 # If you later add the Postgres adapter for a "prod-like" run, dbt-postgres
-# is a pure-Python wheel too, so this file stays empty either way.
+# is a pure-Python wheel too, so this file stays empty either way. 
