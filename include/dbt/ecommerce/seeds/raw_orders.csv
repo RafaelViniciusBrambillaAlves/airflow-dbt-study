@@ -1,0 +1,11 @@
+order_id,customer_id,product_id,quantity,discount_pct,status,order_date
+1001,1,101,2,0.00,completed,2025-04-01
+1002,1,103,1,0.10,completed,2025-04-01
+1003,2,102,1,0.00,completed,2025-04-03
+1004,3,104,3,0.05,completed,2025-04-05
+1005,3,106,1,0.00,cancelled,2025-04-06
+1006,4,105,1,0.00,completed,2025-04-10
+1007,5,101,1,0.00,completed,2025-04-12
+1008,5,102,2,0.15,completed,2025-04-14
+1009,6,106,4,0.00,completed,2025-04-15
+1010,2,104,1,0.00,returned,2025-04-18
