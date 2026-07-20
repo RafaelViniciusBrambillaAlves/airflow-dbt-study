@@ -1,0 +1,16 @@
+version: 2
+
+models:
+  - name: int_orders_enriched
+    description: >
+      Order lines joined with product price, with the discounted line
+      amount computed once so both fct_orders and any future mart don't
+      each reimplement the discount math.
+    columns:
+      - name: order_id
+        tests:
+          - unique
+          - not_null
+      - name: net_amount
+        tests:
+          - not_null
