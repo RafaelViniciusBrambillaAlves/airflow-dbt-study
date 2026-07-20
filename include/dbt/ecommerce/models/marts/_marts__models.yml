@@ -1,0 +1,48 @@
+version: 2
+
+models:
+  - name: dim_customers
+    description: One row per customer, enriched with order aggregates.
+    columns:
+      - name: customer_id
+        tests: 
+          - not_null
+          - unique
+      - name: lifetime_value
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">=0"
+
+  - name: dim_products
+    description: One row per product.
+    columns:
+      - name: product_id
+        tests:
+          - unique
+          - not_null
+
+  - name: fct_orders
+    description: >
+      Grain: one row per order line (order_id, product_id). This is the
+      table BI tools should query for order-level analysis.
+    columns:
+      - name: order_id
+        tests:
+          - not_null
+          - unique
+      - name: customer_id
+        tests:
+          - not_null
+          - relationship:
+              to: ref('dim_customers')
+              field: customer_id
+      - name: product_id
+        tests:
+          - not_null
+          - relationship:
+              to: ref('dim_products')
+              field: product_id
+      - name: net_amount
+        tests:
+          - not_null
+
