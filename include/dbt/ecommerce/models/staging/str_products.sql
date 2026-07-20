@@ -1,6 +1,6 @@
 WITH source AS (
     SELECT * FROM {{ source('raw', 'raw_products') }}
-)
+),
 
 renamed AS (
     SELECT
