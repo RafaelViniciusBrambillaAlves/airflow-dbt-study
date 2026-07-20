@@ -1,0 +1,64 @@
+name: "ecommerce"
+version: "1.0.0"
+config-version: 2
+
+profile: "ecommerce" # matches profiles.yml target and the Cosmos ProfileConfig
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+clean-targets:
+  - "target"
+  - "dbt_modules"
+
+# ---------------------------------------------------------------------------
+# MATERIALIZATION STRATEGY BY LAYER
+#
+# staging  -> view      Staging models just rename/cast/clean raw columns.
+#                        They're cheap to (re)compute and a view guarantees
+#                        every downstream query always sees the freshest raw
+#                        data — there's no storage cost either. Naive
+#                        alternative: materializing staging as tables wastes
+#                        storage and forces you to remember to re-run them.
+#
+# intermediate -> ephemeral   Pure "plumbing" models used only inside other
+#                        dbt models (e.g. a join used by one mart). Ephemeral
+#                        means dbt inlines them as a CTE at compile time —
+#                        nothing physical is created, so the database schema
+#                        stays uncluttered with helper models nobody queries
+#                        directly.
+#
+# marts    -> table     These are the models BI tools / analysts query.
+#                        Recomputing a view over a multi-join pipeline on
+#                        every dashboard refresh is slow and expensive; a
+#                        table trades storage + a scheduled rebuild for fast,
+#                        predictable read performance. At real production
+#                        scale you'd promote these to `incremental` so each
+#                        run only processes new/changed rows instead of a
+#                        full rebuild — noted in README.md's "how this
+#                        scales" section.
+# ---------------------------------------------------------------------------
+
+# The seeds stand in for data an EL tool (Fivetran/Airbyte/Meltano) would
+# normally land in a "raw" schema. Loading them into their own `raw` schema
+# — instead of dbt's default target schema — keeps the boundary between
+# "data we don't control" (raw) and "data dbt builds" (staging/marts)
+# honest, and lets sources.yml describe them the same way it would describe
+# a real EL-loaded table.
+
+seeds:
+  ecommerce:
+    +schema: raw
+
+models:
+  ecommerce:
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: ephemeral
+    marts:
+      +materialized: table
+      +schema: marts

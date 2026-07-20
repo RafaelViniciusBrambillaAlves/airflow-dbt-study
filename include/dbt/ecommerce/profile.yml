@@ -1,0 +1,13 @@
+ecommerce:
+  target: dev
+  outputs:
+    dev: 
+      type: duckdb
+      # DuckDB is an embedded, file-based database — there is no host,
+      # port, user or password to protect, so there is genuinely nothing
+      # here for an Airflow Connection to hold. The ONE thing worth
+      # externalizing is the file path, so it's still read from an env var
+      # rather than hardcoded, and Cosmos injects it via ProfileConfig's
+      # profile_args at DAG-parse time (see dags/dbt_dag.py).
+      path: "{{ env_var('DUCKDB_PATH', '/usr/local/airflow/include/dbt/ecommerce/dbt.duckdb') }}"
+      threads: 4
