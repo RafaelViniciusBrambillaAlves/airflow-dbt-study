@@ -11,3 +11,5 @@ ecommerce:
       # profile_args at DAG-parse time (see dags/dbt_dag.py).
       path: "{{ env_var('DUCKDB_PATH', '/usr/local/airflow/include/dbt/ecommerce/dbt.duckdb') }}"
       threads: 4
+  vars:
+    DBT_ALLOW_EXPERIMENTAL_ADAPTERS: true
