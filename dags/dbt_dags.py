@@ -37,35 +37,6 @@ DBT_VENV_PATH = "/usr/local/airflow/dbt_venv"
 DBT_EXECUTABLE_PATH = f"{DBT_VENV_PATH}/bin/dbt"
 
 # ---------------------------------------------------------------------------
-# Logs
-# ---------------------------------------------------------------------------
-logger = logging.getLogger("airflow.task")
-
-def log_dag_duration(context):
-    dag_run = context["dag_run"]
-    duration = (dag_run.end_date - dag_run.start_date).total_seconds()
-    logger.info(
-        "DAG %s (run_id=%s) finalizou em %.2fs — status=%s",
-        dag_run.dag_id, dag_run.run_id, duration, dag_run.state,
-    )
-
-def log_dbt_run_results(context):
-    """Lê o run_results.json gerado pelo dbt e loga a duração por modelo,
-    reaproveitando o artefato que o próprio dbt já produz em vez de duplicar
-    a métrica manualmente."""
-    run_results_path = Path(DBT_PROJECT_DIR) / "target" / "run_results.json"
-    if not run_results_path.exists():
-        return
-    data = json.loads(run_results_path.read_text())
-    for result in data.get("result", []):
-        node_name = result["unique_id"].split(".")[-1]
-        logger.info(
-            "[dbt] %s -> %.2fs (status=%s)",
-            node_name, result["execution_time"], result["status"],
-        )
-
-
-# ---------------------------------------------------------------------------
 # ProjectConfig: tells Cosmos WHERE the dbt project lives and where seeds/
 # models/etc. are, inside the Airflow worker's filesystem (this is the same
 # `include/dbt/ecommerce` folder from the repo, mounted into the container
@@ -143,8 +114,6 @@ render_config = RenderConfig(
     max_active_tasks = 1, # No paralelism
     tags = ["dbt", "cosmos", "ecommerce"],
     doc_md = __doc__,
-    on_success_callback = log_dag_duration,
-    on_failure_callback = log_dag_duration
 )
 
 def ecommerce_dbt_dag():
