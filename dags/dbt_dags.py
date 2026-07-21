@@ -18,7 +18,11 @@ time, which is negligible for a project this size.
 """
 
 import os
+import json
+import logging
+import time
 from datetime import datetime
+from pathlib import Path
 
 from cosmos import DbtTaskGroup, ProjectConfig, ProfileConfig, ExecutionConfig, RenderConfig
 from cosmos.constants import ExecutionMode
@@ -28,14 +32,45 @@ from airflow.decorators import dag
 from airflow.operators.empty import EmptyOperator
 
 DBT_PROJECT_DIR = "/usr/local/airflow/include/dbt/ecommerce"
-DBT_VENV_PYTHON = "/usr/local/airflow/dbt_venv/bin/python"
+# DBT_VENV_PYTHON = "/usr/local/airflow/dbt_venv/bin/python"
+DBT_VENV_PATH = "/usr/local/airflow/dbt_venv"
+DBT_EXECUTABLE_PATH = f"{DBT_VENV_PATH}/bin/dbt"
+
+# ---------------------------------------------------------------------------
+# Logs
+# ---------------------------------------------------------------------------
+logger = logging.getLogger("airflow.task")
+
+def log_dag_duration(context):
+    dag_run = context["dag_run"]
+    duration = (dag_run.end_date - dag_run.start_date).total_seconds()
+    logger.info(
+        "DAG %s (run_id=%s) finalizou em %.2fs — status=%s",
+        dag_run.dag_id, dag_run.run_id, duration, dag_run.state,
+    )
+
+def log_dbt_run_results(context):
+    """Lê o run_results.json gerado pelo dbt e loga a duração por modelo,
+    reaproveitando o artefato que o próprio dbt já produz em vez de duplicar
+    a métrica manualmente."""
+    run_results_path = Path(DBT_PROJECT_DIR) / "target" / "run_results.json"
+    if not run_results_path.exists():
+        return
+    data = json.loads(run_results_path.read_text())
+    for result in data.get("result", []):
+        node_name = result["unique_id"].split(".")[-1]
+        logger.info(
+            "[dbt] %s -> %.2fs (status=%s)",
+            node_name, result["execution_time"], result["status"],
+        )
+
 
 # ---------------------------------------------------------------------------
 # ProjectConfig: tells Cosmos WHERE the dbt project lives and where seeds/
 # models/etc. are, inside the Airflow worker's filesystem (this is the same
 # `include/dbt/ecommerce` folder from the repo, mounted into the container
 # by the Astro CLI).
-# ---------------------------------------------------------------------------]
+# ---------------------------------------------------------------------------
 project_config = ProjectConfig(
     dbt_project_path = DBT_PROJECT_DIR
 )
@@ -83,7 +118,8 @@ profile_config = ProfileConfig(
 execution_config = ExecutionConfig(
     # execution_mode = ExecutionMode.VIRTUALENV,
     execution_mode = ExecutionMode.LOCAL,
-    virtualenv_dir = os.path.dirname(DBT_VENV_PYTHON.replace("/bin/python", ""))
+    # virtualenv_dir = os.path.dirname(DBT_VENV_PYTHON.replace("/bin/python", ""))
+    dbt_executable_path = DBT_EXECUTABLE_PATH,
 )
 
 # ---------------------------------------------------------------------------
@@ -106,7 +142,9 @@ render_config = RenderConfig(
     catchup = False,
     max_active_tasks = 1, # No paralelism
     tags = ["dbt", "cosmos", "ecommerce"],
-    doc_md = __doc__
+    doc_md = __doc__,
+    on_success_callback = log_dag_duration,
+    on_failure_callback = log_dag_duration
 )
 
 def ecommerce_dbt_dag():
@@ -121,8 +159,10 @@ def ecommerce_dbt_dag():
         task_id = "load_raw_data",
         project_dir = DBT_PROJECT_DIR,
         profile_config = profile_config,
-        py_system_site_packages = False,
-        py_requirements = ["dbt-core==1.9.*", "dbt-duckdb==1.9.*"]
+        # py_system_site_packages = False,
+        # py_requirements = ["dbt-core==1.9.*", "dbt-duckdb==1.9.*"]
+        # invocation_mode = InvocationMode.SUBPROCESS,  
+        
     )
 
     # -----------------------------------------------------------------
