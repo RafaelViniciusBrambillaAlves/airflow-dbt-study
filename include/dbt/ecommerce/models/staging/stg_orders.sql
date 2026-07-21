@@ -9,7 +9,7 @@ renamed AS (
         product_id,
         CAST(quantity AS INTEGER) AS quantity,
         CAST(discount_pct AS DECIMAL(4, 2)) AS discount_pct,
-        LOWER(TRIM(status)) AS status,
+        LOWER(TRIM(status)) AS order_status,
         CAST(order_date AS date) AS order_date
     FROM source
 )

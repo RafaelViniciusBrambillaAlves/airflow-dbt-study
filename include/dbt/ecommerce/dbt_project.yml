@@ -14,39 +14,42 @@ clean-targets:
   - "dbt_modules"
 
 # ---------------------------------------------------------------------------
-# MATERIALIZATION STRATEGY BY LAYER
+# # ESTRATÉGIA DE MATERIALIZAÇÃO POR CAMADA
 #
-# staging  -> view      Staging models just rename/cast/clean raw columns.
-#                        They're cheap to (re)compute and a view guarantees
-#                        every downstream query always sees the freshest raw
-#                        data — there's no storage cost either. Naive
-#                        alternative: materializing staging as tables wastes
-#                        storage and forces you to remember to re-run them.
+# staging  -> view      Os modelos de staging só renomeiam/convertem/limpam
+#                        colunas brutas. São baratos de (re)computar e uma
+#                        view garante que toda query downstream sempre veja
+#                        os dados brutos mais recentes — também não há custo
+#                        de armazenamento. Alternativa ingênua: materializar
+#                        staging como tabela desperdiça armazenamento e
+#                        obriga você a lembrar de rodar novamente.
 #
-# intermediate -> ephemeral   Pure "plumbing" models used only inside other
-#                        dbt models (e.g. a join used by one mart). Ephemeral
-#                        means dbt inlines them as a CTE at compile time —
-#                        nothing physical is created, so the database schema
-#                        stays uncluttered with helper models nobody queries
-#                        directly.
+# intermediate -> ephemeral   Modelos puramente de "encanamento" (plumbing),
+#                        usados só dentro de outros modelos dbt (ex: um join
+#                        usado por um único mart). Ephemeral significa que o
+#                        dbt os embute como uma CTE em tempo de compilação —
+#                        nada físico é criado, então o schema do banco fica
+#                        limpo, sem modelos auxiliares que ninguém consulta
+#                        diretamente.
 #
-# marts    -> table     These are the models BI tools / analysts query.
-#                        Recomputing a view over a multi-join pipeline on
-#                        every dashboard refresh is slow and expensive; a
-#                        table trades storage + a scheduled rebuild for fast,
-#                        predictable read performance. At real production
-#                        scale you'd promote these to `incremental` so each
-#                        run only processes new/changed rows instead of a
-#                        full rebuild — noted in README.md's "how this
-#                        scales" section.
+# marts    -> table     Estes são os modelos que ferramentas de BI/analistas
+#                        consultam. Recalcular uma view sobre um pipeline com
+#                        vários joins a cada atualização de dashboard é lento
+#                        e caro; uma tabela troca armazenamento + uma
+#                        reconstrução agendada por performance de leitura
+#                        rápida e previsível. Em escala real de produção,
+#                        você promoveria esses modelos para `incremental`,
+#                        assim cada execução processa só as linhas novas ou
+#                        alteradas em vez de reconstruir tudo — comentado na
+#                        seção "como isso escala" do README.md.
 # ---------------------------------------------------------------------------
 
-# The seeds stand in for data an EL tool (Fivetran/Airbyte/Meltano) would
-# normally land in a "raw" schema. Loading them into their own `raw` schema
-# — instead of dbt's default target schema — keeps the boundary between
-# "data we don't control" (raw) and "data dbt builds" (staging/marts)
-# honest, and lets sources.yml describe them the same way it would describe
-# a real EL-loaded table.
+# # Os seeds substituem os dados que uma ferramenta de EL (Fivetran/Airbyte/
+# Meltano) normalmente depositaria em um schema "raw". Carregá-los em um
+# schema `raw` próprio — em vez do schema padrão de destino do dbt — mantém
+# honesta a fronteira entre "dados que não controlamos" (raw) e "dados que o
+# dbt constrói" (staging/marts), e permite que o sources.yml os descreva da
+# mesma forma que descreveria uma tabela real carregada por um EL.
 
 seeds:
   ecommerce:

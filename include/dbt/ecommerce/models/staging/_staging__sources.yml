@@ -3,28 +3,29 @@ version: 2
 sources:
   - name: raw
     description: >
-      Raw tables as landed by the ingestion layer (here: dbt seeds standing
-      in for an EL tool). Nothing in this schema is trusted or cleaned yet —
-      staging models are the only place allowed to select from these.
-    schema: raw
+      Tabelas brutas conforme depositadas pela camada de ingestão (aqui: seeds
+      do dbt no lugar de uma ferramenta de EL). Nada neste schema é confiável
+      ou está limpo ainda — os modelos de staging são o único lugar autorizado
+      a fazer select nessas tabelas.
+    schema: analytics_raw
     tables:
       - name: raw_customers
-        description: One row per customer, as received from the source system.
+        description: Uma linha por cliente, como recebida do sistema de origem.
         columns: 
           - name: customer_id
-            description: Natural key from the source system.
+            description: Chave natural do sistema de origem.
             tests:
               - unique
               - not_null
       - name: raw_products
-        description:  Product catalog snapshot.
+        description: Snapshot do catálogo de produtos.
         columns:
           - name: product_id
             tests:
               - unique
               - not_null
       - name: raw_orders
-        description: One row per order line.
+        description: Uma linha por item de pedido.
         columns:
           - name: order_id
             tests:

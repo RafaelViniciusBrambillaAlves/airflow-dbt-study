@@ -1,5 +1,6 @@
--- Staging: 1:1 with the source table. Only renaming, casting and light
--- cleaning happen here — no joins, no business logic.
+-- Staging: 1:1 com a tabela de origem. Aqui só acontece renomeação, cast e
+-- limpeza leve - sem joins, sem lógica de negócio.
+
 WITH source AS (
     SELECT * FROM {{ source('raw', 'raw_customers') }}
 ),

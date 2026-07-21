@@ -1,5 +1,5 @@
--- Fact table: one row per order line, ready for BI tools. Grain and keys
--- are documented in the schema.yml right next to this file.
+-- Tabela fato: uma linha por item de pedido, pronta para ferramentas de BI.
+-- A granularidade e as chaves estão documentadas no schema.yml ao lado deste arquivo.
 
 SELECT 
     order_id,
@@ -9,6 +9,6 @@ SELECT
     order_status,
     quantity,
     unit_price,
-    discount_amount,
+    discount_pct,
     net_amount
 FROM {{ ref('int_orders_enriched') }}

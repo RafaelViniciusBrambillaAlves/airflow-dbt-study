@@ -3,9 +3,9 @@ version: 2
 models:
   - name: int_orders_enriched
     description: >
-      Order lines joined with product price, with the discounted line
-      amount computed once so both fct_orders and any future mart don't
-      each reimplement the discount math.
+      Itens de pedido cruzados com o preço do produto, com o valor da linha
+      já com desconto calculado uma única vez, para que fct_orders e qualquer
+      mart futuro não precisem reimplementar a matemática do desconto.
     columns:
       - name: order_id
         tests:

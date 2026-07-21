@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: dim_customers
-    description: One row per customer, enriched with order aggregates.
+    description: Uma linha por cliente, enriquecida com agregações de pedidos.
     columns:
       - name: customer_id
         tests: 
@@ -14,7 +14,7 @@ models:
               expression: ">=0"
 
   - name: dim_products
-    description: One row per product.
+    description: Uma linha por produto.
     columns:
       - name: product_id
         tests:
@@ -23,8 +23,9 @@ models:
 
   - name: fct_orders
     description: >
-      Grain: one row per order line (order_id, product_id). This is the
-      table BI tools should query for order-level analysis.
+      Granularidade: uma linha por item de pedido (order_id, product_id). Esta
+      é a tabela que ferramentas de BI devem consultar para análises no nível
+      de pedido.
     columns:
       - name: order_id
         tests:

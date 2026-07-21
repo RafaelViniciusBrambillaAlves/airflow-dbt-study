@@ -1,8 +1,11 @@
--- Singular (custom) test: a business rule that no generic test can express.
--- Rule: a completed order must always have a strictly positive net_amount.
--- A generic `not_null`/`accepted_values` test can't check "quantity * price
--- * (1 - discount) > 0 for completed orders" — that needs real SQL.
--- dbt considers this test FAILED if the query returns any rows.
+-- Teste singular (customizado): uma regra de negócio que nenhum teste genérico
+-- consegue expressar.
+-- Regra: um pedido completed deve sempre ter net_amount estritamente positivo.
+-- Um teste genérico `not_null`/`accepted_values` não consegue verificar
+-- "quantity * price * (1 - discount) > 0 para pedidos completed" — isso
+-- precisa de SQL de verdade.
+-- O dbt considera este teste REPROVADO se a query retornar alguma linha.
+
 SELECT
     order_id,
     net_amount
