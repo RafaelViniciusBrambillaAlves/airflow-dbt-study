@@ -24,8 +24,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from cosmos import DbtTaskGroup, ProjectConfig, ProfileConfig, ExecutionConfig, RenderConfig
-from cosmos.constants import ExecutionMode
+from cosmos import DbtTaskGroup, ProjectConfig, ProfileConfig, ExecutionConfig, RenderConfig, LoadMode
+from cosmos.constants import ExecutionMode, InvocationMode
 from cosmos.operators.local import DbtSeedLocalOperator
 
 from airflow.decorators import dag
@@ -91,6 +91,7 @@ execution_config = ExecutionConfig(
     execution_mode = ExecutionMode.LOCAL,
     # virtualenv_dir = os.path.dirname(DBT_VENV_PYTHON.replace("/bin/python", ""))
     dbt_executable_path = DBT_EXECUTABLE_PATH,
+    invocation_mode = InvocationMode.SUBPROCESS,
 )
 
 # ---------------------------------------------------------------------------
@@ -103,11 +104,13 @@ execution_config = ExecutionConfig(
 # ---------------------------------------------------------------------------
 render_config = RenderConfig(
     select = ["path:models"],
-    test_behavior = "after_each"  # a model's tests run immediately after it, not all at the end
+    test_behavior = "after_each",  # a model's tests run immediately after it, not all at the end
+    # dbt_executable_path = DBT_EXECUTABLE_PATH,
+    load_method = LoadMode.DBT_LS
 )
 
 @dag(
-    dag_id = "ecommerce_dbt_dag",
+    dag_id = "ecommerce_dbt_core_dag",
     start_date = datetime(2026, 1, 1),
     schedule = "@daily",
     catchup = False,
@@ -130,8 +133,8 @@ def ecommerce_dbt_dag():
         profile_config = profile_config,
         # py_system_site_packages = False,
         # py_requirements = ["dbt-core==1.9.*", "dbt-duckdb==1.9.*"]
-        # invocation_mode = InvocationMode.SUBPROCESS,  
-        
+        dbt_executable_path = DBT_EXECUTABLE_PATH,
+        invocation_mode = InvocationMode.SUBPROCESS,     
     )
 
     # -----------------------------------------------------------------

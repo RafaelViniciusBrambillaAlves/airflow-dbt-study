@@ -1,4 +1,5 @@
 # Somente dependências do lado do Airflow.
 # dbt-core / dbt-duckdb propositalmente NÃO estão aqui - elas vivem no
 # venv isolado criado no Dockerfile 
-astronomer-cosmos[dbt-duckdb]>=1.11.0,<2.0
+# astronomer-cosmos[dbt-duckdb]>=1.11.0,<2.0
+astronomer-cosmos>=1.11.0,<2.0

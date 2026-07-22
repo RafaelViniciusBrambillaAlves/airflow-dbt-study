@@ -20,8 +20,11 @@ RUN python -m venv /usr/local/airflow/dbt_venv && \
         dbt-core==1.9.* \
         dbt-duckdb==1.9.*
 
+# 2) Duckdb
+RUN mkdir -p /usr/local/airflow/duckdb_data
+
 # ---------------------------------------------------------------------------
-# 2) Binário do dbt Fusion (documentado apenas para fins de completude — NÃO
+# 3) Binário do dbt Fusion (documentado apenas para fins de completude — NÃO
 #    está integrado neste projeto; veja a nota sobre "dbt Fusion" no
 #    README.md para entender o porquê).
 #    É assim que você INSTALARIA caso migrasse para um warehouse com suporte
@@ -32,6 +35,6 @@ RUN python -m venv /usr/local/airflow/dbt_venv && \
 #    o Fusion e, até hoje, não há adapter de DuckDB para o Fusion.
 # ---------------------------------------------------------------------------
 
-# 3) Pacotes Python do lado do Airflow (o próprio Cosmos vive aqui, não no venv do dbt)
+# 4) Pacotes Python do lado do Airflow (o próprio Cosmos vive aqui, não no venv do dbt)
 COPY requirements.txt /
 RUN pip install --no-cache-dir -r /requirements.txt
