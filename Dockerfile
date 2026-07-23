@@ -24,16 +24,22 @@ RUN python -m venv /usr/local/airflow/dbt_venv && \
 RUN mkdir -p /usr/local/airflow/duckdb_data
 
 # ---------------------------------------------------------------------------
-# 3) Binário do dbt Fusion (documentado apenas para fins de completude — NÃO
-#    está integrado neste projeto; veja a nota sobre "dbt Fusion" no
-#    README.md para entender o porquê).
-#    É assim que você INSTALARIA caso migrasse para um warehouse com suporte
-#    a Fusion (Snowflake, Databricks, BigQuery, Redshift-preview):
-#
-#    O Cosmos só orquestra o Fusion sob ExecutionMode.LOCAL, apontando
-#    diretamente para o binário instalado — não existe modo virtualenv para
-#    o Fusion e, até hoje, não há adapter de DuckDB para o Fusion.
+# 3) dbt FUSION — motor em Rust, instalado via binário oficial (não é pip
+# install). Coexiste com o dbt Core (venv acima) no mesmo container: são
+# dois executáveis completamente separados, cada DAG aponta pro seu via
+# ExecutionConfig.dbt_executable_path. Licença ELv2 (open-source com
+# restrição comercial específica) — ok para uso de estudo/interno.
+# Suporte confirmado pelo Cosmos desde 1.11.0a1, só com ExecutionMode.LOCAL.
 # ---------------------------------------------------------------------------
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+ENV SHELL=/bin/bash
+RUN curl -fsSL https://public.cdn.getdbt.com/fs/install/install.sh | sh -s -- --update && \
+    mv /root/.local/bin/dbt /usr/local/bin/dbt && \
+    chmod +x /usr/local/bin/dbt
+USER astro
+
 
 # 4) Pacotes Python do lado do Airflow (o próprio Cosmos vive aqui, não no venv do dbt)
 COPY requirements.txt /
