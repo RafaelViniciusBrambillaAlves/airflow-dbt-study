@@ -1,5 +1,5 @@
 """
-ecommerce_dbt_dag
+ecommerce_dbt_core_dag
 ------------------
 Orchestrates the `ecommerce` dbt project through Astronomer Cosmos instead
 of a raw BashOperator calling `dbt run`.
@@ -34,7 +34,7 @@ from airflow.operators.empty import EmptyOperator
 DBT_PROJECT_DIR = "/usr/local/airflow/include/dbt/ecommerce"
 # DBT_VENV_PYTHON = "/usr/local/airflow/dbt_venv/bin/python"
 DBT_VENV_PATH = "/usr/local/airflow/dbt_venv"
-DBT_EXECUTABLE_PATH = f"{DBT_VENV_PATH}/bin/dbt"
+DBT_CORE_EXECUTABLE = f"{DBT_VENV_PATH}/bin/dbt"
 
 # ---------------------------------------------------------------------------
 # ProjectConfig: tells Cosmos WHERE the dbt project lives and where seeds/
@@ -72,7 +72,7 @@ project_config = ProjectConfig(
 # ---------------------------------------------------------------------------
 profile_config = ProfileConfig(
     profile_name = "ecommerce",
-    target_name = "dev",
+    target_name = "dev_core",
     profiles_yml_filepath = f"{DBT_PROJECT_DIR}/profiles.yml"
 )
 
@@ -90,7 +90,7 @@ execution_config = ExecutionConfig(
     # execution_mode = ExecutionMode.VIRTUALENV,
     execution_mode = ExecutionMode.LOCAL,
     # virtualenv_dir = os.path.dirname(DBT_VENV_PYTHON.replace("/bin/python", ""))
-    dbt_executable_path = DBT_EXECUTABLE_PATH,
+    dbt_executable_path = DBT_CORE_EXECUTABLE,
     invocation_mode = InvocationMode.SUBPROCESS,
 )
 
@@ -105,8 +105,8 @@ execution_config = ExecutionConfig(
 render_config = RenderConfig(
     select = ["path:models"],
     test_behavior = "after_each",  # a model's tests run immediately after it, not all at the end
-    # dbt_executable_path = DBT_EXECUTABLE_PATH,
-    load_method = LoadMode.DBT_LS
+    load_method = LoadMode.DBT_LS,
+    # dbt_executable_path = DBT_CORE_EXECUTABLE,
 )
 
 @dag(
@@ -133,7 +133,7 @@ def ecommerce_dbt_dag():
         profile_config = profile_config,
         # py_system_site_packages = False,
         # py_requirements = ["dbt-core==1.9.*", "dbt-duckdb==1.9.*"]
-        dbt_executable_path = DBT_EXECUTABLE_PATH,
+        dbt_executable_path = DBT_CORE_EXECUTABLE,
         invocation_mode = InvocationMode.SUBPROCESS,     
     )
 
