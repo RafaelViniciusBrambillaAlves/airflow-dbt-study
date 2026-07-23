@@ -7,7 +7,9 @@ sources:
       do dbt no lugar de uma ferramenta de EL). Nada neste schema é confiável
       ou está limpo ainda — os modelos de staging são o único lugar autorizado
       a fazer select nessas tabelas.
-    schema: analytics_raw
+    # O dbt concatena o schema do target (analytics_core) com o +schema do dbt_project.yml (raw)
+    # gerando "analytics_core_raw". Aqui usamos Jinja para apontar dinamicamente para o schema correto.
+    schema: "{{ target.schema }}_raw"
     tables:
       - name: raw_customers
         description: Uma linha por cliente, como recebida do sistema de origem.

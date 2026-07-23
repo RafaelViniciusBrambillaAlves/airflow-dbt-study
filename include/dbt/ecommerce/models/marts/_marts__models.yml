@@ -10,8 +10,9 @@ models:
           - unique
       - name: lifetime_value
         tests:
-          - dbt_utils.expression_is_true:
-              expression: ">=0"
+          - expression_is_true:
+              arguments:
+                expression: ">=0"
 
   - name: dim_products
     description: Uma linha por produto.
@@ -34,15 +35,17 @@ models:
       - name: customer_id
         tests:
           - not_null
-          - relationship:
-              to: ref('dim_customers')
-              field: customer_id
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
       - name: product_id
         tests:
           - not_null
-          - relationship:
-              to: ref('dim_products')
-              field: product_id
+          - relationships:
+              arguments:
+                to: ref('dim_products')
+                field: product_id
       - name: net_amount
         tests:
           - not_null

@@ -1,17 +1,15 @@
 ecommerce:
-  target: dev
+  target: dev_core
   outputs:
-    dev: 
+    dev_core: 
       type: duckdb
-      # O DuckDB é um banco de dados embutido, baseado em arquivo — não há host,
-      # porta, usuário ou senha para proteger, então realmente não há nada aqui
-      # para uma Connection do Airflow guardar. A ÚNICA coisa que vale a pena
-      # externalizar é o caminho do arquivo, por isso ele ainda é lido de uma
-      # variável de ambiente em vez de fixo no código, e o Cosmos injeta esse
-      # valor via profile_args do ProfileConfig no momento do parse da DAG
-      # (veja dags/dbt_dag.py).
       path: "{{ env_var('DUCKDB_PATH') }}"
-      schema: analytics
+      schema: analytics_core
+      threads: 4
+    dev_fusion:
+      type: duckdb
+      path: "{{ env_var('DUCKDB_PATH') }}"
+      schema: analytics_fusion
       threads: 4
   vars:
     DBT_ALLOW_EXPERIMENTAL_ADAPTERS: true
