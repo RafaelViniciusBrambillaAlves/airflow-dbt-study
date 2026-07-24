@@ -18,7 +18,8 @@ FROM astrocrpublic.azurecr.io/runtime:3.0-9
 RUN python -m venv /usr/local/airflow/dbt_venv && \
     /usr/local/airflow/dbt_venv/bin/pip install --no-cache-dir \
         dbt-core==1.9.* \
-        dbt-duckdb==1.9.*
+        dbt-duckdb==1.9.* \
+        dbt-postgres==1.9.*
 
 # 2) Duckdb
 RUN mkdir -p /usr/local/airflow/duckdb_data

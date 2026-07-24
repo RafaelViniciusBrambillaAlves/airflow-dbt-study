@@ -1,0 +1,13 @@
+services:
+  postgres-warehouse:
+    image: postgres:16
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_warehouse_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_warehouse_data:
