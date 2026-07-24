@@ -1,5 +1,5 @@
 """
-ecommerce_dbt_fusion_dag
+ecommerce_dbt_fusion_duckdb_dag
 -------------------------
 Roda o MESMO projeto dbt (`include/dbt/ecommerce`) usado pela
 `ecommerce_dbt_core_dag`, mas através do motor dbt Fusion (Rust) em vez do
@@ -31,21 +31,12 @@ from airflow.operators.empty import EmptyOperator
 
 DBT_PROJECT_DIR = "/usr/local/airflow/include/dbt/ecommerce"
 
-# ---------------------------------------------------------------------------
-# Binário do dbt Fusion instalado via install.sh no Dockerfile — NÃO é o
-# mesmo executável da DAG do Core (que usa /usr/local/airflow/dbt_venv/bin/dbt).
-# CONFIRME esse caminho após o build: `astro dev bash` -> `which dbt` (com
-# o venv do Core desativado) ou `find / -iname dbt -type f 2>/dev/null`.
-# ---------------------------------------------------------------------------
-# DBT_FUSION_EXECUTABLE = "/home/astro/.local/bin/dbt"
 DBT_FUSION_EXECUTABLE = "/usr/local/bin/dbt"
 
 project_config = ProjectConfig(
     dbt_project_path = DBT_PROJECT_DIR
 )
 
-# Mesmo profiles.yml do Core, mas target_name diferente -> schema isolado
-# (analytics_fusion_*), evitando qualquer conflito com a DAG do Core.
 profile_config = ProfileConfig(
     profile_name = "ecommerce",
     target_name = "dev_fusion",
@@ -61,21 +52,20 @@ execution_config = ExecutionConfig(
 render_config = RenderConfig(
     select = ["path:models"],
     test_behavior = "after_each",
-    # dbt_executable_path = DBT_FUSION_EXECUTABLE, # também precisa ser explícito aqui, senão o parsing usa outro dbt
     load_method = LoadMode.DBT_LS,
 )
 
 @dag(
-    dag_id = "ecommerce_dbt_fusion_dag",
+    dag_id = "ecommerce_dbt_fusion_duckdb_dag",
     start_date = datetime(2026, 1, 1),
     schedule = "@daily",
     catchup = False,
     max_active_tasks = 1, # DuckDB não paraleliza escrita - mesma restrição da DAG do Core
-    tags = ["dbt", "cosmos", "ecommerce", "fusion"],
+    tags = ["dbt", "cosmos", "ecommerce", "fusion", "duckdb"],
     doc_md = __doc__,
 )
 
-def ecommerce_dbt_fusion_dag():
+def ecommerce_dbt_fusion_duckdb_dag():
 
     start = EmptyOperator(task_id = "start")
 
@@ -99,4 +89,4 @@ def ecommerce_dbt_fusion_dag():
 
     start >> load_raw_data >> transform_and_test >> end
 
-ecommerce_dbt_fusion_dag()
+ecommerce_dbt_fusion_duckdb_dag()
