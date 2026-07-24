@@ -54,7 +54,13 @@ clean-targets:
 seeds:
   ecommerce:
     +schema: raw
-
+    raw_products:
+      +column_types:
+        unit_price: numeric(10,2)
+    raw_orders:
+      +column_types:
+        discount_pct: numeric(10, 2)
+    
 models:
   ecommerce:
     staging:
