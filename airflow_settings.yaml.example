@@ -1,0 +1,24 @@
+# airflow_settings.yaml.example
+# Copie este arquivo para airflow_settings.yaml e preencha com as credenciais reais.
+# ATENÇÃO: Nunca comite o arquivo airflow_settings.yaml real!
+
+# This file allows you to configure Airflow Connections, Pools, and Variables in a single place for local development only.
+# NOTE: json dicts can be added to the conn_extra field as yaml key value pairs. See the example below.
+
+airflow:
+  connections:
+    - conn_id: ecommerce_warehouse
+      conn_type: postgres
+      conn_host: host.docker.internal
+      conn_schema: ecommerce
+      conn_login: ecommerce
+      conn_password: "pass123"
+      conn_port: 5433
+      conn_extra:
+  pools:
+    - pool_name:
+      pool_slot:
+      pool_description:
+  variables:
+    - variable_name:
+      variable_value:
