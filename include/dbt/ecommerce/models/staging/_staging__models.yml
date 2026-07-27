@@ -47,7 +47,7 @@ models:
               arguments:
                 to: ref('stg_products')
                 field: product_id
-      - name: order_date
+      - name: order_status
         tests:
           - accepted_values:
               arguments:
