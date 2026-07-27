@@ -30,8 +30,8 @@ from airflow.decorators import dag
 from airflow.operators.empty import EmptyOperator
 
 DBT_PROJECT_DIR = "/usr/local/airflow/include/dbt/ecommerce"
-
 DBT_FUSION_EXECUTABLE = "/usr/local/bin/dbt"
+
 
 project_config = ProjectConfig(
     dbt_project_path = DBT_PROJECT_DIR
@@ -53,6 +53,7 @@ render_config = RenderConfig(
     select = ["path:models"],
     test_behavior = "after_each",
     load_method = LoadMode.DBT_LS,
+    dbt_executable_path = DBT_FUSION_EXECUTABLE,
 )
 
 @dag(

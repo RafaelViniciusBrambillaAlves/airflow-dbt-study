@@ -12,7 +12,7 @@ os.environ["DBT_ALLOW_EXPERIMENTAL_ADAPTERS"] = "true"
 
 DBT_PROJECT_DIR = "/usr/local/airflow/include/dbt/ecommerce"
 DBT_FUSION_EXECUTABLE = "/usr/local/bin/dbt"
-DBT_PROFILES_PATH = "/usr/local/airflow/include/dbt/ecommerce/profiles.yml"
+
 
 project_config = ProjectConfig(
     dbt_project_path = DBT_PROJECT_DIR
@@ -47,7 +47,8 @@ render_config = RenderConfig(
     schedule = "@daily",
     catchup = False,
     max_active_tasks = 4,
-    tags = ["dbt", "cosmos", "ecommerce", "postgres"]
+    tags = ["dbt", "cosmos", "ecommerce", "postgres"],
+    doc_md = __doc__,
 )
 
 def ecommerce_dbt_fusion_postgres_dag():

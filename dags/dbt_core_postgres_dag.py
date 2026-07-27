@@ -14,8 +14,8 @@ from airflow.decorators import dag
 from airflow.operators.empty import EmptyOperator
 
 DBT_PROJECT_DIR = "/usr/local/airflow/include/dbt/ecommerce"
-DBT_VENV_PATH = "/usr/local/airflow/dbt_venv"
 DBT_CORE_EXECUTABLE = "/usr/local/airflow/dbt_venv/bin/dbt"
+
 
 project_config = ProjectConfig(
     dbt_project_path = DBT_PROJECT_DIR
@@ -50,7 +50,8 @@ render_config = RenderConfig(
     schedule = "@daily",
     catchup = False,
     max_active_tasks = 4,
-    tags = ["dbt", "cosmos", "ecommerce", "postgres"]
+    tags = ["dbt", "cosmos", "ecommerce", "postgres"],
+    doc_md = __doc__,
 )
 
 def ecommerce_dbt_core_postgres_dag():

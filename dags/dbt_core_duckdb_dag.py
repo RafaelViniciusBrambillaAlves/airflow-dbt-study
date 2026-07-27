@@ -32,8 +32,7 @@ from airflow.decorators import dag
 from airflow.operators.empty import EmptyOperator
 
 DBT_PROJECT_DIR = "/usr/local/airflow/include/dbt/ecommerce"
-DBT_VENV_PATH = "/usr/local/airflow/dbt_venv"
-DBT_CORE_EXECUTABLE = f"{DBT_VENV_PATH}/bin/dbt"
+DBT_CORE_EXECUTABLE = "/usr/local/airflow/dbt_venv/bin/dbt"
 
 
 project_config = ProjectConfig(
