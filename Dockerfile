@@ -40,8 +40,3 @@ RUN curl -fsSL https://public.cdn.getdbt.com/fs/install/install.sh | sh -s -- --
     mv /root/.local/bin/dbt /usr/local/bin/dbt && \
     chmod +x /usr/local/bin/dbt
 USER astro
-
-
-# 4) Pacotes Python do lado do Airflow (o próprio Cosmos vive aqui, não no venv do dbt)
-COPY requirements.txt /
-RUN pip install --no-cache-dir -r /requirements.txt
