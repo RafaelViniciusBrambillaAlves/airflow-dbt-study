@@ -3,6 +3,14 @@ ecommerce_dbt_core_postgres_dag
 ------------------
 Orchestrates the `ecommerce` dbt project (Postgres target) through Astronomer Cosmos.
 Follows the exact same isolated venv pattern as the DuckDB DAG.
+ 
+INGESTAO PARAMETRIZAVEL (small/large)
+A carga dos dados brutos bifurca em runtime via a Airflow Variable
+`ecommerce_dataset_size` (ver include/ingestion/airflow_tasks.py):
+  - "small" (default): dbt seed, comportamento original.
+  - "large": ~10.000 linhas de raw_orders geradas com Faker e carregadas
+    direto no schema raw do Postgres (via a mesma Connection
+    `ecommerce_warehouse` usada pelo Cosmos), sem passar pelo dbt seed.
 """
 
 from datetime import datetime
@@ -13,9 +21,14 @@ from cosmos.profiles import PostgresUserPasswordProfileMapping
 from airflow.decorators import dag
 from airflow.operators.empty import EmptyOperator
 
+from include.ingestion.airflow_tasks import build_ingestion_branch
+
 DBT_PROJECT_DIR = "/usr/local/airflow/include/dbt/ecommerce"
 DBT_CORE_EXECUTABLE = "/usr/local/airflow/dbt_venv/bin/dbt"
 
+POSTGRES_CONN_ID = "ecommerce_warehouse"
+
+RAW_SCHEMA = "analytics_core_raw"
 
 project_config = ProjectConfig(
     dbt_project_path = DBT_PROJECT_DIR
@@ -58,12 +71,19 @@ def ecommerce_dbt_core_postgres_dag():
 
     start = EmptyOperator(task_id = "start")
 
-    load_raw_data = DbtSeedLocalOperator(
-        task_id = "load_raw_data",
+    load_raw_seed = DbtSeedLocalOperator(
+        task_id = "load_raw_seed",
         project_dir = DBT_PROJECT_DIR,
         profile_config = profile_config,
         dbt_executable_path = DBT_CORE_EXECUTABLE,
         invocation_mode = InvocationMode.SUBPROCESS,
+    )
+
+    choose_ingestion_path, raw_data_ready = build_ingestion_branch(
+        seed_operator = load_raw_seed,
+        schema = RAW_SCHEMA,
+        warehouse = "postgres",
+        postgres_conn_id = POSTGRES_CONN_ID
     )
 
     transform_and_test = DbtTaskGroup(
@@ -76,6 +96,7 @@ def ecommerce_dbt_core_postgres_dag():
 
     end = EmptyOperator(task_id = "end")
 
-    start >> load_raw_data >> transform_and_test >> end 
+    start >> choose_ingestion_path
+    raw_data_ready >> transform_and_test >> end
 
 ecommerce_dbt_core_postgres_dag()

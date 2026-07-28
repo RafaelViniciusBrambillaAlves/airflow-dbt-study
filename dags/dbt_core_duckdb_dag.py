@@ -3,7 +3,7 @@ ecommerce_dbt_core_duckdb_dag
 ------------------
 Orchestrates the `ecommerce` dbt project through Astronomer Cosmos instead
 of a raw BashOperator calling `dbt run`.
-
+ 
 WHY COSMOS INSTEAD OF `BashOperator(bash_command="dbt run")`?
 A single BashOperator treats the whole dbt project as one opaque step: if
 model #12 out of 15 fails, Airflow just shows "task failed" with no signal
@@ -15,14 +15,23 @@ logs, a lineage graph that mirrors dbt's DAG inside Airflow's Graph view,
 and a pipeline that fails at the exact model/test that broke instead of a
 single black box. The cost is a small amount of extra parsing at DAG-parse
 time, which is negligible for a project this size.
+ 
+INGESTAO PARAMETRIZAVEL (small/large)
+A carga dos dados brutos agora bifurca em runtime, via a Airflow Variable
+`ecommerce_dataset_size` (ver include/ingestion/airflow_tasks.py):
+  - "small" (default): dbt seed, comportamento original, sem alteracao.
+  - "large": ~10.000.000 linhas de raw_orders (configuravel via
+    `ecommerce_large_dataset_n_orders`), geradas com Faker e carregadas
+    direto no schema raw do DuckDB - nao usa dbt seed, pois seeds nao sao
+    recomendados pela documentacao oficial do dbt para volumes desse
+    tamanho (ver docstring de generate_fake_data.py).
+Isso evita duplicar esta DAG em duas (pequena/grande): a mesma DAG roda
+com um volume ou outro dependendo do valor da Variable no momento do
+trigger.
 """
 
 import os
-import json
-import logging
-import time
 from datetime import datetime
-from pathlib import Path
 
 from cosmos import DbtTaskGroup, ProjectConfig, ProfileConfig, ExecutionConfig, RenderConfig, LoadMode
 from cosmos.constants import ExecutionMode, InvocationMode
@@ -31,9 +40,16 @@ from cosmos.operators.local import DbtSeedLocalOperator
 from airflow.decorators import dag
 from airflow.operators.empty import EmptyOperator
 
+from include.ingestion.airflow_tasks import build_ingestion_branch
+
 DBT_PROJECT_DIR = "/usr/local/airflow/include/dbt/ecommerce"
 DBT_CORE_EXECUTABLE = "/usr/local/airflow/dbt_venv/bin/dbt"
 
+DUCKDB_PATH = os.environ.get(
+    "DUCKDB_PATH", "/usr/local/airflow/duckdb_data/ecommerce.duckdb"
+)
+
+RAW_SCHEMA = "analytics_core_raw"
 
 project_config = ProjectConfig(
     dbt_project_path = DBT_PROJECT_DIR
@@ -74,13 +90,19 @@ def ecommerce_dbt_core_duck_db_dag():
 
     start = EmptyOperator(task_id = "start")
 
-    load_raw_data = DbtSeedLocalOperator(
-        task_id = "load_raw_data",
+    load_raw_seed = DbtSeedLocalOperator(
+        task_id = "load_raw_seed",
         project_dir = DBT_PROJECT_DIR,
         profile_config = profile_config,
-        
         dbt_executable_path = DBT_CORE_EXECUTABLE,
-        invocation_mode = InvocationMode.SUBPROCESS,     
+        invocation_mode = InvocationMode.SUBPROCESS
+    )
+
+    choose_ingestion_path, raw_data_ready = build_ingestion_branch(
+        seed_operator = load_raw_seed,
+        schema = RAW_SCHEMA,
+        warehouse = "duckdb",
+        duckdb_path = DUCKDB_PATH 
     )
 
     transform_and_test = DbtTaskGroup(
@@ -93,6 +115,9 @@ def ecommerce_dbt_core_duck_db_dag():
     
     end = EmptyOperator(task_id = "end")
 
-    start >> load_raw_data >> transform_and_test >> end
+    start >> choose_ingestion_path
+
+    raw_data_ready >> transform_and_test >> end
+    
 
 ecommerce_dbt_core_duck_db_dag()
