@@ -1,6 +1,14 @@
 # Somente dependências do lado do Airflow.
-# dbt-core / dbt-duckdb propositalmente NÃO estão aqui - elas vivem no
+# dbt-core / dbt-duckdb não estão aqui - elas vivem no
 # venv isolado criado no Dockerfile 
-# astronomer-cosmos[dbt-duckdb]>=1.11.0,<2.0
 astronomer-cosmos>=1.11.0,<2.0
 apache-airflow-providers-postgres==5.13.*
+
+# Dependências do módulo include/ingestion/ (geração e carga do dataset
+# "large" fora do dbt seed - ver include/ingestion/generate_fake_data.py).
+# Vivem no ambiente do Airflow (não no venv isolado do dbt), pois rodam
+# dentro de uma PythonOperator/BranchPythonOperator normal do Airflow.
+Faker>=28.0,<31.0
+duckdb==1.1.*
+pandas>=2.2,<3.0
+
