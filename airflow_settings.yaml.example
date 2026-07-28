@@ -20,5 +20,12 @@ airflow:
       pool_slot:
       pool_description:
   variables:
-    - variable_name:
-      variable_value:
+    # Controla qual volume de dados as 4 DAGs de benchmark carregam.
+    # "small" (default se a Variable nao existir) -> dbt seed, comportamento
+    # original. "large" -> ~10.000.000 linhas geradas via Faker, carregadas
+    # direto no schema raw (ver include/ingestion/airflow_tasks.py).
+    - variable_name: ecommerce_dataset_size
+      variable_value: small
+    # Quantidade de linhas de raw_orders geradas quando dataset_size="large".
+    - variable_name: ecommerce_large_dataset_n_orders
+     variable_value: "10000000"
