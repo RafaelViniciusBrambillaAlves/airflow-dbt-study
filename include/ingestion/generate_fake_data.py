@@ -38,9 +38,10 @@ from datetime import timedelta, datetime
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 from faker import Faker
 
-RANDOW_SEED = 42
+RANDOM_SEED = 42
 
 # Categorias de produtos
 CATEGORY_PRODUCT_TEMPLATES = {
@@ -74,12 +75,6 @@ CATEGORY_PRICE_RANGE = {
 STATUS_WEIGHTS = {"completed": 0.82, "pending": 0.10, "cancelled": 0.08}
 QUANTITY_WEIGHTS = {1: 0.45, 2: 0.25, 3: 0.15, 4: 0.10, 5: 0.05}
 DISCOUNT_WEIGHTS = {0.00: 0.50, 0.05: 0.20, 0.10: 0.15, 0.15: 0.10, 0.20: 0.05}
-
-
-def _weighted_choice(rng: random.Random, weights: dict):
-    options = list(weights.keys())
-    probs = list(weights.values())
-    return rng.choices(options, weights = probs, k = 1)[0]
 
 
 def _generate_products(rng: random.Random, n_products: int) -> pd.DataFrame:
@@ -147,71 +142,112 @@ def _generate_customers(fake: Faker, rng: random.Random, n_customers: int) -> pd
 
 
 def _generate_orders(
-    rng: random.Random,
     n_orders: int,
     customers_df: pd.DataFrame,
     products_df: pd.DataFrame,
+    seed: int = RANDOM_SEED
 ) -> pd.DataFrame:
-    n_customers = len(customers_df)
+    """
+    Gera pedidos usando operações VETORIZADAS com NumPy.
+    Isso reduz o tempo de geração de 10 milhões de linhas de ~horas para poucos segundos.
+    """
 
-    # Nem todo cliente compra: ~75% do total de clientes concentra os
-    # pedidos, com peso decrescente (poucos clientes muito ativos, muitos
-    # com 1-2 pedidos) - distribuicao tipo "power law" simplificada
+    np_rng = np.random.default_rng(seed)
+
+    # 1. Selecionar 75% dos clientes ativos e produtos 
     active_customers = customers_df.sample(
-        frac = 0.75, random_state = RANDOW_SEED
-    )["customer_id"].to_list()
-    customer_weights = [rng.uniform(0.1, 1.0) ** 2 for _ in active_customers]
+        frac = 0.75, random_state = seed
+    )["customer_id"].to_numpy()
 
-    # Alguns produtos vendem muito mais que outros
-    products_ids = products_df["product_id"].to_list()
-    products_weights = [rng.uniform(0.1, 1.0) ** 2 for _ in products_ids]
+    customer_weights = np_rng.uniform(0.1, 1.0, size = len(active_customers)) ** 2
+    customer_weights /= customer_weights.sum()
 
-    signup_lookup = dict(
-        zip(
-            customers_df["customer_id"],
-            pd.to_datetime(customers_df["signup_date"]),
-        )
+    products_ids = products_df["product_id"].to_numpy()
+    
+    products_weights = np_rng.uniform(0.1, 1.0, size = len(products_ids)) ** 2
+    products_weights /= products_weights.sum()
+
+    # 2. Geracao vetorizada de Ids
+    customers_ids = np_rng.choice(active_customers, size = n_orders, p = customer_weights)
+    product_ids = np_rng.choice(products_ids, size = n_orders, p = products_weights)
+
+    # 3. Geracao Vetorizada de Datas
+    customer_ids_all = customers_df["customer_id"].to_numpy()
+    signup_dates_all = customers_df["signup_date"].to_numpy()
+
+    max_customer_id = int(customer_ids_all.max())
+    signup_lookup = np.empty(max_customer_id + 1, dtype = signup_dates_all.dtype)
+    signup_lookup[customer_ids_all] = signup_dates_all
+
+    signup_np = pd.to_datetime(signup_lookup[customers_ids]).to_numpy()
+
+    max_order_date_np = np.datetime64("2026-07-01")
+    earliest_np = signup_np + np.timedelta64(1, "D")
+
+    limit_date_np = max_order_date_np - np.timedelta64(1, "D")
+    earliest_np = np.where(earliest_np > limit_date_np, limit_date_np, earliest_np)
+
+    span_days_np = ((max_order_date_np - earliest_np) / np.timedelta64(1, "D")).astype(int)
+    span_days_np = np.maximum(span_days_np, 1)
+
+    added_days_np = (np_rng.random(size = n_orders) * (span_days_np + 1)).astype(int)
+    order_dates_np = earliest_np + (added_days_np * np.timedelta64(1, "D"))
+
+
+    # 4. Geracao Vetorizada de Quantidade, Desconto e Status
+    quantities = np_rng.choice(
+        list(QUANTITY_WEIGHTS.keys()),
+        size = n_orders,
+        p = list(QUANTITY_WEIGHTS.values())
     )
 
-    max_order_date = pd.Timestamp("2026-07-01")
+    discounts = np_rng.choice(
+        list(DISCOUNT_WEIGHTS.keys()),
+        size = n_orders,
+        p = list(DISCOUNT_WEIGHTS.values())
+    )
 
-    rows = []
+    statuses = np_rng.choice(
+        list(STATUS_WEIGHTS.keys()),
+        size = n_orders,
+        p = list(STATUS_WEIGHTS.values())
+    )
 
-    for order_id in range(1, n_orders + 1):
-        customer_id = rng.choices(active_customers, weights = customer_weights, k = 1)[0]
-        product_id = rng.choices(products_ids, weights = products_weights, k = 1)[0]
+    # `astype(str)` direto no numpy datetime64 evita instanciar um
+    # DatetimeIndex do pandas só para formatar - mais rápido para 10M linhas
+    # e produz o mesmo formato YYYY-MM-DD que `.strftime('%Y-%m-%d')`
+    order_dates_str = order_dates_np.astype("datetime64[D]").astype(str)
 
-        signup_date = signup_lookup[customer_id]
+    # 5. Monta o DataFrame de uma só vez (sem append em loops)
+    
+    columns = {
+        "order_id": np.arange(1, n_orders + 1),
+        "customer_id": customers_ids,
+        "product_id": product_ids,
+        "quantity": quantities,
+        "discount_pct": discounts,
+        "status": statuses,
+        "order_date": order_dates_str,
+    }
 
-        earliest = signup_date + timedelta(days = 1)
-
-        if earliest >= max_order_date:
-            earliest = max_order_date - timedelta(days = 1)
-
-        span_days = max((max_order_date - earliest).days, 1)
-
-        order_date = earliest + timedelta(days = rng.randint(0, span_days))
-
-        rows.append(
-            {
-                "order_id": order_id,
-                "customer_id": customer_id,
-                "product_id": product_id,
-                "quantity": _weighted_choice(rng, QUANTITY_WEIGHTS),
-                "discount_pct": _weighted_choice(rng, DISCOUNT_WEIGHTS),
-                "status": _weighted_choice(rng, STATUS_WEIGHTS),
-                "order_date": order_date.date().isoformat(),
-            }
+    lengths = {name: len(arr) for name, arr in columns.items()}
+    
+    if len(set(lengths.values())) != 1:
+        raise ValueError(
+            f"Shape mismatch ao montar raw_orders (esperado {n_orders} em "
+            f"todas as colunas): {lengths}"
         )
+    
+    return pd.DataFrame(columns)
 
-    return pd.DataFrame(rows)
+
 
 
 def generate_dataset(
     n_orders: int = 10_000_000,
     n_products: int = 60,
     n_customers: int | None = None,
-    seed: int = RANDOW_SEED
+    seed: int = RANDOM_SEED,
 ) -> dict[str, pd.DataFrame]:
     """
     Gera o dataset fake completo (customers, products, orders) com
@@ -232,7 +268,7 @@ def generate_dataset(
 
     products_df = _generate_products(rng, n_products)
     customers_df = _generate_customers(fake, rng, n_customers)
-    orders_df = _generate_orders(rng, n_orders, customers_df, products_df)
+    orders_df = _generate_orders(n_orders, customers_df, products_df, seed)
 
     return {
         "raw_customers": customers_df,
