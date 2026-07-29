@@ -45,7 +45,7 @@ LARGE_TASK_ID = "load_raw_large"
 
 
 def _chosse_branch(**context) -> str:
-    size = Variable.get(DATASET_SIZE_VAR, default_var = "small").strip().lower()
+    size = Variable.get(DATASET_SIZE_VAR, default = "small").strip().lower()
 
     if size not in ("small", "large"):
         raise ValueError(
@@ -66,7 +66,7 @@ def _load_large_dataset(
     **context,
 ) -> None:
     n_orders = int(
-        Variable.get(LARGE_DATASET_N_ORDERS_VAR, default_var = DEFAULT_LARGE_N_ORDERS)
+        Variable.get(LARGE_DATASET_N_ORDERS_VAR, default = DEFAULT_LARGE_N_ORDERS)
     )
 
     print(f"[ingestao] gerando dataset fake com n_orders = {n_orders}"
