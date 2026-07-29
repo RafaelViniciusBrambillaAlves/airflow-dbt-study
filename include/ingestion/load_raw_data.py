@@ -19,6 +19,7 @@ Suporta os dois warehouses do projeto:
     PostgresHook.
 """
 
+import os
 import pandas as pd
 
 import duckdb 
@@ -56,15 +57,34 @@ def load_to_postgres(dataframes: dict[str, pd.DataFrame], conn_id: str, schema: 
     PostgresUserPasswordProfileMapping do Cosmos).
     """
     hook = PostgresHook(postgres_conn_id = conn_id)
-    engine = hook.get_sqlalchemy_engine()
-    with engine.begin() as connection:
-        connection.exec_driver_sql(f"CREATE SCHEMA IF NOT EXISTS {schema}")
 
+    pg_conn = hook.get_conn()
+    cursor = pg_conn.cursor()
+
+    try:
+        cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {schema}")
+    
         for table_name, df in dataframes.items():
-            df.to_sql(
-                table_name, 
-                conn = connection,
-                schema = schema,
-                if_exists = "replace",
-                index = False
-            )
+
+            engine = hook.get_sqlalchemy_engine()
+            df.head(0).to_sql(table_name, con = engine, schema = schema, if_exists = "replace", index = False)
+
+            tmp_csv_path = f"/tmp/{table_name}_bulk.csv"
+            df.to_csv(tmp_csv_path, index = False, header = False)
+
+            with open(tmp_csv_path, 'r') as f:
+                cursor.copy_expert(f'COPY "{schema}"."{table_name}" FROM STDIN WITH CSV', f)
+
+            os.remove(tmp_csv_path)
+
+            print(f"[ingestao] {schema}.{table_name}: {len(df)} linhas carregadas via COPY.")
+
+        pg_conn.commit()
+
+    except Exception as e:
+        pg_conn.rollback()
+        raise e
+
+    finally:
+        cursor.close()
+        pg_conn.close()
