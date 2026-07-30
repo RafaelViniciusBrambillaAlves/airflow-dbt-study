@@ -1,0 +1,209 @@
+{
+  "version": 1,
+  "skills": {
+    "airflow": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/airflow/SKILL.md",
+      "computedHash": "85dd7e759a44f6cb0b49bafa3942a623824f924b0e6a8b0b4852c302bf16023d"
+    },
+    "airflow-hitl": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/airflow-hitl/SKILL.md",
+      "computedHash": "5cdc73780e841de9e490fde1c895ce315035e362a1c7859a4d308cbd6e3488f6"
+    },
+    "airflow-plugins": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/airflow-plugins/SKILL.md",
+      "computedHash": "c9df1a03afdcad1e7aa508e71f48661b4d885812160bbd3859513a7ffe6f0642"
+    },
+    "airflow-state-store": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/airflow-state-store/SKILL.md",
+      "computedHash": "fb8951a8718aeb13c77cff0f6d870b06db34af88b5e400205bfd9b8a43e4202f"
+    },
+    "analyzing-data": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/analyzing-data/SKILL.md",
+      "computedHash": "8a393d019d3117e964c8650606498a77aa1a6c353366df6689b8020ff0f0b213"
+    },
+    "annotating-task-lineage": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/annotating-task-lineage/SKILL.md",
+      "computedHash": "28e5ac5bf8715a1d75c198115c623b72e24e7fc280dea61e21b06e17dc4cdd8f"
+    },
+    "authoring-dags": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/authoring-dags/SKILL.md",
+      "computedHash": "fc0442faf1ab253eb2248181adb0328e0dcfaed7aa75306c1ea92ce914604c49"
+    },
+    "authoring-go-sdk-tasks": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/authoring-go-sdk-tasks/SKILL.md",
+      "computedHash": "e13cff5d65551f3ccf5fadbe6bbee5a5f5756dc9f3086a29e532e5ae6935d446"
+    },
+    "authoring-java-sdk-tasks": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/authoring-java-sdk-tasks/SKILL.md",
+      "computedHash": "49f7f73598b54cceea72e989a8f51d348d22ad20ec2d49614bd51a8beb6d8b13"
+    },
+    "authoring-language-sdk-tasks": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/authoring-language-sdk-tasks/SKILL.md",
+      "computedHash": "77deba6c80e042760c050825e317b8da0fbbe3975f433bb55c6019a302f9c889"
+    },
+    "blueprint": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/blueprint/SKILL.md",
+      "computedHash": "e001f12d6f88e7d505d0b3e27c4e337ab3da8ec3c4615d67f4dc6468ad4d70bd"
+    },
+    "checking-freshness": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/checking-freshness/SKILL.md",
+      "computedHash": "14277a8117b32cd351dfbf4d29f711a222feb6c233f1dac818241f3b168e454e"
+    },
+    "configuring-airflow-language-sdks": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/configuring-airflow-language-sdks/SKILL.md",
+      "computedHash": "71b05ba71c16a194b87daf97bd3b0f0a16300b9e99bfdd3393fd761cafd05e66"
+    },
+    "cosmos-dbt-core": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/cosmos-dbt-core/SKILL.md",
+      "computedHash": "b6837be69fcaf37916112f8c5eaa6216969b3f2d37a2e75e223a9aae24971a9b"
+    },
+    "cosmos-dbt-fusion": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/cosmos-dbt-fusion/SKILL.md",
+      "computedHash": "7b3ec48b2bb17302d3c0586da3272bef915d0967e32851cdb115f8840fc977e7"
+    },
+    "creating-openlineage-extractors": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/creating-openlineage-extractors/SKILL.md",
+      "computedHash": "03d5694592b9341517c8402a1485782415219392bdd17bb744225da0deabc35a"
+    },
+    "dag-factory": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/dag-factory/SKILL.md",
+      "computedHash": "806b74b7979e022b330ee2a7ba74b976b136db6458099dbde7ffafdb0752e3a7"
+    },
+    "debugging-dags": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/debugging-dags/SKILL.md",
+      "computedHash": "36876755674ada144df91cd3b0c4d2b35b014e0530b6e30d92437ed3435a4368"
+    },
+    "delegating-to-otto": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/delegating-to-otto/SKILL.md",
+      "computedHash": "085c96aba1346aeaadcb60b9c331dd9901faec87bcba2f44705e0d235bc43920"
+    },
+    "deploying-airflow": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/deploying-airflow/SKILL.md",
+      "computedHash": "65d6ccd4db3171162a73f6fb7c39339cae8c6ce69435dfe86c6b33baaf608dcf"
+    },
+    "deploying-go-sdk-bundles": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/deploying-go-sdk-bundles/SKILL.md",
+      "computedHash": "cf78f92da879cd5159de860a8cb6b3f6aaa0c1e19cb5c540cfb4552347357945"
+    },
+    "deploying-java-sdk-bundles": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/deploying-java-sdk-bundles/SKILL.md",
+      "computedHash": "95b0230a65d252d15f61203c391433fa80b427b40e8881e6dbcee46aa2c70190"
+    },
+    "managing-astro-deployments": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/managing-astro-deployments/SKILL.md",
+      "computedHash": "efae67ea3869d9d59ea24ef52d5e8b089d8e8b8e3dd6b537015b56a182573ff5"
+    },
+    "managing-astro-local-env": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/managing-astro-local-env/SKILL.md",
+      "computedHash": "375540b8d042b093b95617c7b53aaf38ab6ff4d47d0688f181111f94a7ddfa46"
+    },
+    "migrating-ai-sdk-to-common-ai": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/migrating-ai-sdk-to-common-ai/SKILL.md",
+      "computedHash": "793d79b1ca98b95eac63eb1e9400feeb443a5d21b67ddb248c57889ce70bbcfd"
+    },
+    "migrating-airflow-2-to-3": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/migrating-airflow-2-to-3/SKILL.md",
+      "computedHash": "60b97483f08046886e7391133384a8df2aa3651fe461cf041c649bbda32a34d0"
+    },
+    "migrating-dagster-to-airflow": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/migrating-dagster-to-airflow/SKILL.md",
+      "computedHash": "cf5418309c4cf66641af264bc49afee41597b1bf3f825be251c5d817bb9c19e0"
+    },
+    "profiling-tables": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/profiling-tables/SKILL.md",
+      "computedHash": "a999e9c1c5d16267372ffe216229839ae9ebaef3cae37ce673a8c0a8af796ea3"
+    },
+    "setting-up-astro-project": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/setting-up-astro-project/SKILL.md",
+      "computedHash": "4ce68f6000ff18df3e1d005fb376d90bf3eb93db6aaf0f0c815d55e087525c61"
+    },
+    "testing-dags": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/testing-dags/SKILL.md",
+      "computedHash": "2ff0806048ec771e5ae99046e7be4d6d237c8dc2e93f5d86705e34a6b9c48a90"
+    },
+    "tracing-downstream-lineage": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/tracing-downstream-lineage/SKILL.md",
+      "computedHash": "cf1fd005c0f326dccaa748b2a6d313c4c69ab33405f5d114621d03a9708603b4"
+    },
+    "tracing-upstream-lineage": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/tracing-upstream-lineage/SKILL.md",
+      "computedHash": "c63bf600ffe3606f49a022e296c945e4902577f5dd8b6fa564d1f13c69ab1695"
+    },
+    "troubleshooting-astro-deployments": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/troubleshooting-astro-deployments/SKILL.md",
+      "computedHash": "a4e12073625f0f01f312aaea9b099a7a8f35a814e55c0a8d7b3efb6e2b5e203e"
+    },
+    "warehouse-init": {
+      "source": "astronomer/agents",
+      "sourceType": "github",
+      "skillPath": "skills/warehouse-init/SKILL.md",
+      "computedHash": "17f36407fa9500901580d496f5eeb52a8da8db3bf29fd7da3288383ed7d65f3d"
+    }
+  }
+}
