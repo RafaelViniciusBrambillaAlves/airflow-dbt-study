@@ -1,3 +1,4 @@
+
 services:
   postgres-warehouse:
     image: postgres:16
@@ -13,6 +14,13 @@ services:
       - "5433:5432"
     volumes:
       - postgres_warehouse_data:/var/lib/postgresql/data
+    networks:
+      - airflow
 
 volumes:
   postgres_warehouse_data:
+
+networks:
+  airflow:
+    name: airflow-dbt-study_f4057d_airflow
+    external: true
