@@ -30,14 +30,14 @@ DBT_FUSION_EXECUTABLE = "/usr/local/bin/dbt"
 
 POSTGRES_CONN_ID = "ecommerce_warehouse"
 
-RAW_SCHEMA = "analytics_warehouse"
+RAW_SCHEMA = "analytics_fusion_raw"
 
 
-project_config = ProjectConfig(
+_project_config = ProjectConfig(
     dbt_project_path = DBT_PROJECT_DIR
 )
 
-profile_config = ProfileConfig(
+_profile_config = ProfileConfig(
     profile_name = "ecommerce",
     target_name = "dev_fusion_pg",
     profile_mapping = PostgresUserPasswordProfileMapping(
@@ -46,16 +46,17 @@ profile_config = ProfileConfig(
     )
 )
 
-execution_config = ExecutionConfig(
+_execution_config = ExecutionConfig(
     execution_mode = ExecutionMode.LOCAL,
     dbt_executable_path = DBT_FUSION_EXECUTABLE,
     invocation_mode = InvocationMode.SUBPROCESS, 
 )
 
-render_config = RenderConfig(
+_render_config = RenderConfig(
     select = ["path:models"],
     test_behavior = "after_each",
-    load_method = LoadMode.DBT_LS,
+    # load_method = LoadMode.DBT_LS,
+    load_method = LoadMode.AUTOMATIC,
     invocation_mode = InvocationMode.SUBPROCESS,
     dbt_executable_path = DBT_FUSION_EXECUTABLE,
 )
@@ -77,7 +78,7 @@ def ecommerce_dbt_fusion_postgres_dag():
     load_raw_seed = DbtSeedLocalOperator(
         task_id = "load_raw_seed",
         project_dir = DBT_PROJECT_DIR,
-        profile_config = profile_config,
+        profile_config = _profile_config,
         dbt_executable_path = DBT_FUSION_EXECUTABLE,
         invocation_mode = InvocationMode.SUBPROCESS,
     )
@@ -91,10 +92,10 @@ def ecommerce_dbt_fusion_postgres_dag():
 
     transform_and_test = DbtTaskGroup(
         group_id = "transform_and_test",
-        project_config = project_config,
-        profile_config = profile_config,
-        execution_config = execution_config,
-        render_config = render_config
+        project_config = _project_config,
+        profile_config = _profile_config,
+        execution_config = _execution_config,
+        render_config = _render_config
     )
 
     end = EmptyOperator(task_id = "end")
