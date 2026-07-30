@@ -19,11 +19,34 @@ Suporta os dois warehouses do projeto:
     PostgresHook.
 """
 
-import os
+import io
 import pandas as pd
-
 import duckdb 
+from typing import Mapping
+
+from sqlalchemy import text
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+
+# Mapeando pandas dtype -> tipo Postgres
+def _pandas_dtype_to_pg(dtype) -> str:
+    if pd.api.types.is_integer_dtype(dtype):
+        return "BIGINT"
+    if pd.api.types.is_float_dtype(dtype):
+        return "DOUBLE PRECISION"
+    if pd.api.types.is_bool_dtype(dtype):
+        return "BOOLEAN"
+    if pd.api.types.is_datetime64_any_dtype(dtype):
+        return "TIMESTAMP"
+    return "TEXT"
+
+
+def _build_create_table_sql(schema: str, table: str, df: pd.DataFrame) -> str:
+    cols = ", ".join(
+        f'"{col}" {_pandas_dtype_to_pg(dtype)}'
+        for col, dtype in df.dtypes.items()
+    )
+    return f'CREATE TABLE "{schema}"."{table}" ({cols})'
+
 
 
 def load_to_duckdb(dataframes: dict[str, pd.DataFrame], duckdb_path: str, schema: str) -> None:
@@ -52,39 +75,60 @@ def load_to_duckdb(dataframes: dict[str, pd.DataFrame], duckdb_path: str, schema
 
 def load_to_postgres(dataframes: dict[str, pd.DataFrame], conn_id: str, schema: str) -> None:
     """
-    Grava os DataFrames como tabelas no schema indicado do Postgres, usando
-    a Connection do Airflow ja configurada (mesmo conn_id usado pelo
-    PostgresUserPasswordProfileMapping do Cosmos).
+    Carrega DataFrames para PostgreSQL de forma idempotente e eficiente.
+
+    Etapa 1 - via SQLAlchemy, em uma única transação:
+        - CREATE SCHEMA IF NOT EXISTS
+        - DROP TABLE IF EXISTS ... CASCADE
+        - CREATE TABLE com tipos mapeados dos dtypes do DataFrame
+
+    Etapa 2 - via psycopg2 + COPY FROM STDIN:
+        - copy_expert() com StringIO como buffer
+        - transação única cobrindo todas as tabelas (commit só no final)
+        - rollback automático em caso de erro
     """
+    # Toda a logica de conexao do Postgres usando o Connection do Airflow
     hook = PostgresHook(postgres_conn_id = conn_id)
+    # Objeto SQLAlchemy Engine
+    engine = hook.get_sqlalchemy_engine()
 
-    pg_conn = hook.get_conn()
-    cursor = pg_conn.cursor()
+    # Etapa 1: DDL (CREATE SCHEMA / DROP / CREATE TABLE)
+    with engine.begin() as conn: # commit automatico / rollback 
+        conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
 
-    try:
-        cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {schema}")
-    
         for table_name, df in dataframes.items():
+            conn.execute(
+                text(f'DROP TABLE IF EXISTS "{schema}"."{table_name}" CASCADE')
+            )
 
-            engine = hook.get_sqlalchemy_engine()
-            df.head(0).to_sql(table_name, con = engine, schema = schema, if_exists = "replace", index = False)
+            conn.execute(text(_build_create_table_sql(schema, table_name, df)))
 
-            tmp_csv_path = f"/tmp/{table_name}_bulk.csv"
-            df.to_csv(tmp_csv_path, index = False, header = False)
+    # Etapa 2: Carga via COPY FROM STDIN
+    # Usa a conexão DBAPI2 bruta, que é o caminho oficial do psycopg2 para
+    # COPY. Abrimos UMA conexão e mantemos a transação explícita.
+    pg_conn = hook.get_conn()
+    try:
+        with pg_conn.cursor() as cursor:
+            for table_name, df in dataframes.items():
+                buffer = io.StringIO()
 
-            with open(tmp_csv_path, 'r') as f:
-                cursor.copy_expert(f'COPY "{schema}"."{table_name}" FROM STDIN WITH CSV', f)
+                df.to_csv(buffer, index = False, header = False, na_rep = "")
 
-            os.remove(tmp_csv_path)
+                buffer.seek(0)
 
-            print(f"[ingestao] {schema}.{table_name}: {len(df)} linhas carregadas via COPY.")
-
+                cursor.copy_expert(
+                    f'COPY "{schema}"."{table_name}" '
+                    f"FROM STDIN WITH CSV NULL AS ''",
+                    buffer
+                )
+                print(
+                    f"[ingestao] {schema}.{table_name}: "
+                    f"{len(df)} linhas carregadas via COPY."
+                )
         pg_conn.commit()
-
-    except Exception as e:
+    except Exception:
         pg_conn.rollback()
-        raise e
+        raise
 
     finally:
-        cursor.close()
         pg_conn.close()
