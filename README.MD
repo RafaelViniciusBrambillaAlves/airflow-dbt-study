@@ -191,6 +191,41 @@ cada modelo, um teste que falha bloqueia o avanço da DAG para os modelos que
 dependem daquele dado, funcionando como um "portão de qualidade" (quality gate)
 antes de o dado chegar às camadas seguintes.
 
+### Por que `ExecutionMode.LOCAL` + `dbt_executable_path`, em vez de `ExecutionMode.VIRTUALENV`
+
+O Dockerfile já constrói um virtualenv isolado para o dbt no momento do build da
+imagem. `ExecutionMode.VIRTUALENV` do Cosmos existe para o caso oposto: quando
+não é possível isolar as dependências do dbt no build da imagem (por exemplo,
+múltiplos projetos dbt com adapters/versões conflitantes rodando no mesmo
+Airflow), e resolve isso criando (ou reaproveitando) um virtualenv em tempo de
+execução da task via `pip install`. Usar os dois padrões ao mesmo tempo é
+redundante e foi a causa de a DAG não rodar corretamente: o `ExecutionConfig`
+não estava configurado com `dbt_executable_path`, então o Cosmos procurava um
+binário `dbt` solto no `PATH` do Airflow — que nunca existiu, propositalmente,
+pois o dbt vive isolado no venv do Dockerfile (ver `requirements.txt`).
+A correção foi apontar `dbt_executable_path` diretamente para esse venv.
+
+### Por que a DAG roda sequencialmente (`max_active_tasks = 1`)
+
+Isso não é uma limitação de configuração do Airflow, é uma consequência direta
+do DuckDB: em modo leitura-escrita, apenas um processo por vez pode manter uma
+conexão de escrita aberta no arquivo `.duckdb` — um segundo processo tentando
+escrever ao mesmo tempo falha com erro de lock. O parâmetro `threads` no
+`profiles.yml` paraleliza apenas a execução *dentro* de um único processo dbt
+(múltiplos cores processando uma query), não tem relação com quantas tasks do
+Airflow rodam ao mesmo tempo. `max_active_tasks = 1` só torna essa restrição
+explícita em vez de deixá-la causar falhas de lock em tempo de execução.
+
+### Por que adicionar Postgres como warehouse alternativo
+
+O DuckDB, por ser single-writer, serializa qualquer escrita concorrente — 
+isso limitava `max_active_tasks` a 1 nas DAGs existentes. Postgres suporta 
+conexões concorrentes de verdade, então as DAGs `*_postgres_dag` rodam com 
+`max_active_tasks=4`, permitindo medir o ganho real de paralelismo do 
+Cosmos quando o banco não é o gargalo. Os dois warehouses coexistem 
+propositalmente (`dev_core`/`dev_fusion` para DuckDB, `dev_core_pg`/
+`dev_fusion_pg` para Postgres) para comparação lado a lado.
+
 ## Estrutura de pastas
 
 | Caminho | Propósito |
@@ -239,6 +274,72 @@ antes de o dado chegar às camadas seguintes.
    /usr/local/airflow/dbt_venv/bin/dbt docs generate
    /usr/local/airflow/dbt_venv/bin/dbt docs serve
    ```
+
+## Dataset de volume (benchmark small vs. large)
+
+Para testar o pipeline com um volume mais realista (~10.000.000 linhas em
+`raw_orders`), o projeto não usa `dbt seed` para isso. A documentação
+oficial do dbt é explícita ao afirmar que seeds não devem ser usados
+para carregar dados brutos em volume (grandes exports, por exemplo),
+sendo pensados para dados de referência pequenos e versionados — o
+dataset pequeno atual (6 clientes, 6 produtos, 10 pedidos) continua
+sendo carregado exatamente como antes, via `dbt seed`.
+
+Para o volume maior, o projeto usa um mecanismo de ingestão de verdade:
+`include/ingestion/generate_fake_data.py` gera os dados com `Faker`
+(seed fixa, reprodutível), preservando integridade referencial
+(nenhum `customer_id`/`product_id` órfão em `raw_orders`) e
+distribuições realistas (status majoritariamente `completed`, alguns
+clientes concentrando vários pedidos e outros sem nenhum, alguns
+produtos vendendo muito mais que outros, pedido sempre posterior ao
+cadastro do cliente). `include/ingestion/load_raw_data.py` carrega esse
+resultado direto nas tabelas `raw_customers`/`raw_products`/`raw_orders`
+do warehouse (DuckDB ou Postgres), sem passar pelo dbt — o dbt continua
+enxergando essas tabelas apenas através do `source()` já declarado em
+`models/staging/_staging__sources.yml`, então nenhum modelo precisou
+mudar.
+
+### Como alternar entre os dois volumes
+
+As 4 DAGs de benchmark (não foram criadas 8 DAGs) leem, em runtime, a
+Airflow Variable `ecommerce_dataset_size`:
+
+| Variable | Comportamento |
+|---|---|
+| `small` (default, se a Variable não existir) | `dbt seed` — dataset fixo original |
+| `large` | Gera e carrega ~`ecommerce_large_dataset_n_orders` linhas (default 10.000.000) via Faker |
+
+Para trocar o volume antes de disparar as DAGs:
+
+```bash
+astro dev bash
+airflow variables set ecommerce_dataset_size large
+airflow variables set ecommerce_large_dataset_n_orders 10000000
+```
+
+Ou edite `airflow_settings.yaml` (local) e rode `astro dev restart` para
+que o Astro CLI sincronize a Variable automaticamente no startup, sem
+passo manual — o mesmo padrão já usado para a Connection
+`ecommerce_warehouse`.
+
+Cada execução registra, no log da task `choose_ingestion_path` e no nome
+da task que efetivamente rodou (`load_raw_seed` ou `load_raw_large`),
+qual volume foi usado — sempre confira isso antes de comparar tempos
+entre execuções diferentes, para não misturar medições de volumes
+distintos.
+
+### Por que parametrizar em vez de duplicar as DAGs
+
+Duplicar para 8 DAGs (uma "small" e uma "large" por combinação
+motor×banco) evitaria o risco de esquecer de trocar a Variable antes de
+um run, mas dobraria a manutenção: qualquer ajuste de configuração,
+correção de bug ou mudança de dependência precisaria ser replicado em
+duas DAGs por cenário. Como o volume de dado não muda a estrutura da
+DAG (mesmo grafo de tasks, só uma tabela `raw_orders` maior ou menor),
+parametrizar via Variable foi a opção escolhida, priorizando
+simplicidade de manutenção sobre a garantia adicional de não esquecer
+de trocar o volume — mitigado pelo log explícito do branch escolhido em
+cada execução.
 
 ## Próximos passos
 
