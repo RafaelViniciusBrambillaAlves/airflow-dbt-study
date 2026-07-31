@@ -29,6 +29,9 @@ sempre confira qual das duas rodou antes de comparar tempos entre runs.
 """
 
 # from airflow.models import Variable
+from pathlib import Path
+
+import pandas as pd
 from airflow.sdk import Variable
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import BranchPythonOperator, PythonOperator
@@ -43,15 +46,104 @@ DEFAULT_LARGE_N_ORDERS = 10_000_000
 SEED_TASK_ID = "load_raw_seed"
 LARGE_TASK_ID = "load_raw_large"
 
+RAW_SCHEMAS = ("analytics_core_raw", "analytics_fusion_raw")
+DEFAULT_INGESTION_WAREHOUSES = ("duckdb", "postgres")
 
-def _chosse_branch(**context) -> str:
+
+def _dataset_size() -> str:
     size = Variable.get(DATASET_SIZE_VAR, default = "small").strip().lower()
 
     if size not in ("small", "large"):
         raise ValueError(
-            f"Variable {DATASET_SIZE_VAR} = '{size}' invalida"
+            f"Variable {DATASET_SIZE_VAR} = '{size}' invalida. "
             "Valores aceitos: 'small' ou 'large'"
         )
+
+    return size
+
+
+def _large_n_orders() -> int:
+    return int(
+        Variable.get(LARGE_DATASET_N_ORDERS_VAR, default = DEFAULT_LARGE_N_ORDERS)
+    )
+
+
+def _seed_dataset(dbt_project_dir: str) -> dict[str, pd.DataFrame]:
+    seed_dir = Path(dbt_project_dir) / "seeds"
+    return {
+        "raw_customers": pd.read_csv(seed_dir / "raw_customers.csv"),
+        "raw_products": pd.read_csv(seed_dir / "raw_products.csv"),
+        "raw_orders": pd.read_csv(seed_dir / "raw_orders.csv"),
+    }
+
+
+def _selected_warehouses() -> tuple[str, ...]:
+    raw_value = Variable.get(
+        "ecommerce_ingestion_warehouses",
+        default = ",".join(DEFAULT_INGESTION_WAREHOUSES),
+    )
+    warehouses = tuple(
+        warehouse.strip().lower()
+        for warehouse in raw_value.split(",")
+        if warehouse.strip()
+    )
+    invalid = sorted(set(warehouses) - set(DEFAULT_INGESTION_WAREHOUSES))
+    if invalid:
+        raise ValueError(
+            "Variable ecommerce_ingestion_warehouses contem valores invalidos: "
+            f"{invalid}. Use duckdb, postgres ou duckdb,postgres."
+        )
+    if not warehouses:
+        raise ValueError("ecommerce_ingestion_warehouses nao pode ficar vazia")
+
+    return warehouses
+
+
+def load_benchmark_raw_data(
+    dbt_project_dir: str,
+    duckdb_path: str,
+    postgres_conn_id: str,
+    raw_schemas: tuple[str, ...] = RAW_SCHEMAS,
+) -> None:
+    """
+    Carrega os dados brutos uma unica vez para os schemas consumidos pelas
+    quatro DAGs de transformacao. Nao chama dbt: tanto o dataset pequeno
+    quanto o grande entram pela camada de ingestao Python.
+    """
+    size = _dataset_size()
+    warehouses = _selected_warehouses()
+
+    if size == "small":
+        dataframes = _seed_dataset(dbt_project_dir)
+    else:
+        dataframes = generate_dataset(n_orders = _large_n_orders())
+
+    print(
+        "[ingestao] dataset_size=%s warehouses=%s schemas=%s"
+        % (size, ",".join(warehouses), ",".join(raw_schemas))
+    )
+
+    for warehouse in warehouses:
+        for schema in raw_schemas:
+            if warehouse == "duckdb":
+                load_to_duckdb(
+                    dataframes = dataframes,
+                    duckdb_path = duckdb_path,
+                    schema = schema,
+                )
+            elif warehouse == "postgres":
+                load_to_postgres(
+                    dataframes = dataframes,
+                    conn_id = postgres_conn_id,
+                    schema = schema,
+                )
+
+    for table_name, df in dataframes.items():
+        print(f"[ingestao] {table_name}: {len(df)} linhas carregadas")
+
+
+def _chosse_branch(**context) -> str:
+    size = _dataset_size()
     
     print(f"[ingestao] ecommerce_dataset_size='{size}' -> "
           f"branch escolhido: {SEED_TASK_ID if size == 'small' else LARGE_TASK_ID}")
@@ -65,9 +157,7 @@ def _load_large_dataset(
     postgres_conn_id: str | None = None,
     **context,
 ) -> None:
-    n_orders = int(
-        Variable.get(LARGE_DATASET_N_ORDERS_VAR, default = DEFAULT_LARGE_N_ORDERS)
-    )
+    n_orders = _large_n_orders()
 
     print(f"[ingestao] gerando dataset fake com n_orders = {n_orders}"
           f"-> schema = {schema} (warehouse = {warehouse})")
@@ -97,55 +187,3 @@ def _load_large_dataset(
     for table_name, df in dataframes.items():
         print(f"[ingestao] {schema}.{table_name}: {len(df)} linhas carregadas")
 
-
-def build_ingestion_branch(
-    seed_operator,
-    schema: str, 
-    warehouse: str,
-    duckdb_path: str | None = None,
-    postgres_conn_id: str | None = None
-):
-    """
-    Monta o trecho `choose_ingestion_path -> [load_raw_seed | load_raw_large]
-    -> raw_data_ready` da DAG.
- 
-    `seed_operator` precisa ser a task de dbt seed ja instanciada com
-    task_id="load_raw_seed" (comportamento "small", sem alteracoes).
- 
-    Retorna (choose_task, raw_data_ready_task): o chamador conecta
-    `start >> choose_task` e `raw_data_ready >> transform_and_test`.
-    """
-
-    if seed_operator.task_id != SEED_TASK_ID:
-        raise ValueError(
-            f"seed_operator.task_id deve ser '{SEED_TASK_ID}' para casar"
-            f"com o branch (recebido: '{seed_operator.task_id}')"
-        )
-
-    choose = BranchPythonOperator(
-        task_id = "choose_ingestion_path",
-        python_callable = _chosse_branch,
-    )
-
-    load_large = PythonOperator(
-        task_id = LARGE_TASK_ID,
-        python_callable = _load_large_dataset,
-        op_kwargs = {
-            "schema": schema,
-            "warehouse": warehouse,
-            "duckdb_path": duckdb_path,
-            "postgres_conn_id": postgres_conn_id,
-        },
-    ) 
-
-    # none_failed_min_one_success: segue em frente assim que UM dos dois
-    # ramos (o que nao foi pulado pelo branch) terminar com sucesso.
-    raw_data_ready = EmptyOperator(
-        task_id = "raw_data_ready",
-        trigger_rule = "none_failed_min_one_success",
-    )
-
-    choose >> [seed_operator, load_large]
-    [seed_operator, load_large] >> raw_data_ready
-
-    return choose, raw_data_ready
