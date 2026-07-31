@@ -12,7 +12,7 @@ models:
         tests:
           - expression_is_true:
               arguments:
-                expression: ">=0"
+                expression: "lifetime_value >=0"
 
   - name: dim_products
     description: Uma linha por produto.
