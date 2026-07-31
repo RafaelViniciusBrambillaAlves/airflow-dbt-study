@@ -28,4 +28,8 @@ airflow:
       variable_value: small
     # Quantidade de linhas de raw_orders geradas quando dataset_size="large".
     - variable_name: ecommerce_large_dataset_n_orders
-     variable_value: "10000000"
+      variable_value: "10000000"
+    # Warehouses loaded by ecommerce_ingestion_dag. Use "duckdb", "postgres",
+    # or "duckdb,postgres" depending on which benchmark targets are available.
+    - variable_name: ecommerce_ingestion_warehouses
+      variable_value: duckdb,postgres
