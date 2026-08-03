@@ -17,9 +17,9 @@ FROM astrocrpublic.azurecr.io/runtime:3.0-9
 # 1) # 1) Cria o virtualenv isolado do dbt usado pelo Cosmos (ExecutionMode.VIRTUALENV)
 RUN python -m venv /usr/local/airflow/dbt_venv && \
     /usr/local/airflow/dbt_venv/bin/pip install --no-cache-dir \
-        dbt-core==1.9.* \
-        dbt-duckdb==1.9.* \
-        dbt-postgres==1.9.*
+        dbt-core==1.10.* \
+        dbt-duckdb==1.10.* \
+        dbt-postgres==1.10.*
 
 # 2) Duckdb
 RUN mkdir -p /usr/local/airflow/duckdb_data
