@@ -46,7 +46,7 @@ DEFAULT_LARGE_N_ORDERS = 10_000_000
 SEED_TASK_ID = "load_raw_seed"
 LARGE_TASK_ID = "load_raw_large"
 
-RAW_SCHEMAS = ("analytics_core_raw", "analytics_fusion_raw")
+RAW_SCHEMAS = ("analytics_core_raw", "analytics_fusion_raw", "analytics_lineage_raw")
 DEFAULT_INGESTION_WAREHOUSES = ("duckdb", "postgres")
 
 
