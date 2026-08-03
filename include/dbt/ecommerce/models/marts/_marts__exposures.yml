@@ -1,0 +1,19 @@
+version: 2
+
+exposures:
+  - name: exposure_name
+    label: "Dashboard de Vendas"
+    type: dashboard
+    maturity: medium
+    description: >
+      Dashboard consumido pelo time comercial para acompanhar receita,
+      volume de pedidos e valor de vida do cliente (LTV). É o ponto final
+      do grafo de linhagem deste projeto - nenhum modelo downstream consome
+      estes marts além dele.
+    owner:
+      name: "Time de Analytics"
+      email: analytics@ecommerce.example.com
+    depends_on:
+      - ref('fct_orders')
+      - ref('dim_customers')
+      - ref('dim_products')
