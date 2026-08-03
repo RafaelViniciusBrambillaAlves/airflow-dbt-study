@@ -1,0 +1,33 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          { "type": "command", "command": "python3 .claude/hooks/block_env_access.py" }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "python3 .claude/hooks/block_env_access.py" },
+          { "type": "command", "command": "python3 .claude/hooks/protect_sensitive_configs.py" }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "python3 .claude/hooks/block_dangerous_bash.py" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "python3 .claude/hooks/dbt_parse_check.py" }
+        ]
+      }
+    ]
+  }
+}

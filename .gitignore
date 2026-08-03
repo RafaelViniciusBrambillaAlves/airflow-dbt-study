@@ -16,3 +16,5 @@ include/dbt/ecommerce/*.duckdb.wal
 # Logs do Airflow gerados por `astro dev start`
 logs/
 airflow_settings.yaml
+
+.claude/settings.local.json
