@@ -8,6 +8,8 @@ models:
         tests: 
           - not_null
           - unique
+          - dbt_expectations.expect_column_values_to_be_increasing
+    
       - name: lifetime_value
         tests:
           - expression_is_true:
@@ -49,4 +51,8 @@ models:
       - name: net_amount
         tests:
           - not_null
+          - dbt_expectations.expect_column_mean_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 500
 
