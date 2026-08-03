@@ -3,6 +3,7 @@
 # venv isolado criado no Dockerfile 
 astronomer-cosmos>=1.11.0,<2.0
 apache-airflow-providers-postgres==5.13.*
+apache-airflow-providers-openlineage>=1.15.0,<3.0
 
 # Dependências do módulo include/ingestion/ (geração e carga do dataset
 # "large" fora do dbt seed - ver include/ingestion/generate_fake_data.py).
