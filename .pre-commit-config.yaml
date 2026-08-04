@@ -1,0 +1,32 @@
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^(dags|include)/
+      - id: ruff-format
+        files: ^(dags|include)/
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: ["-c", ".yamllint.yml"]
+
+  # sqlfluff roda como hook local (nao via repo externo) porque precisa
+  # do templater dbt configurado contra ESTE projeto (profiles.yml,
+  # dbt_project.yml) - um hook generico nao teria esse contexto.
+  #
+  # Pre-requisito local (uma vez): dbt-core, dbt-duckdb e sqlfluff +
+  # sqlfluff-templater-dbt instalados no seu Python, DUCKDB_PATH definido
+  # (ver .env.example) e `dbt deps` rodado em include/dbt/ecommerce/.
+  - repo: local
+    hooks:
+      - id: sqlfluff-lint
+        name: sqlfluff lint (dbt models)
+        entry: bash -c 'cd include/dbt/ecommerce && sqlfluff lint models'
+        language: system
+        files: ^include/dbt/ecommerce/models/.*\.sql$
+        pass_filenames: false

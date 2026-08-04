@@ -1,0 +1,17 @@
+<!-- .github\CODEOWNERS -->
+# Documentacao de intencao de propriedade. Com um unico mantenedor hoje,
+# isso funciona mais como registro explicito de quem e responsavel por
+# revisar cada parte do projeto do que como enforcement de segunda
+# revisao - mas fica pronto para o dia em que houver mais de um
+# colaborador.
+#
+# TROQUE @SEU_USUARIO_GITHUB pelo seu usuario real do GitHub antes de
+# commitar este arquivo.
+
+* @RafaelViniciusBrambillaAlves
+
+# Configuracao sensivel (Docker, CI, guardrails do Claude Code) - mesma
+# pessoa, mas listada explicitamente por ser configuracao de alto impacto.
+/Dockerfile @RafaelViniciusBrambillaAlves
+/.github/ @RafaelViniciusBrambillaAlves
+/.claude/settings.json @RafaelViniciusBrambillaAlves

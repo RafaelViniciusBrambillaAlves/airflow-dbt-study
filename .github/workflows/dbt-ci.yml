@@ -1,0 +1,112 @@
+# .github\workflows\dbt-ci.yml
+
+name: dbt CI
+
+# So dispara quando o proprio projeto dbt ou a camada de ingestao mudam -
+# uma PR mexendo so em lint config ou docs nao precisa rodar dbt build.
+on:
+  pull_request:
+    paths:
+      - "include/dbt/ecommerce/**"
+      - "include/ingestion/**"
+      - ".github/workflows/dbt-ci.yml"
+
+# NOTA DE ESCOPO (opcao "b" escolhida): este workflow builda o projeto
+# dbt nos DOIS bancos (DuckDB e Postgres) usando dbt Core, sempre contra
+# o dataset PEQUENO (seeds/, nunca o dataset "large" de benchmark).
+#
+# dbt Fusion NAO e instalado aqui de proposito: o binario Fusion (ELv2,
+# instalacao via script externo, ainda em preview) testaria o MESMO SQL/
+# testes que o Core ja cobre - o risco real que este CI cobre e
+# divergencia de adapter (DuckDB vs Postgres: tipos inferidos, sintaxe),
+# nao divergencia de engine. A validacao de que o Cosmos consegue de fato
+# apontar para o binario Fusion continua coberta pelo
+# airflow-dag-validation.yml (que builda a imagem real com os dois
+# binarios instalados). Se quiser cobertura de Fusion tambem em CI,
+# de aviso - o job adicional e direto (mesmos passos, trocando o binario).
+jobs:
+  duckdb:
+    name: dbt build (DuckDB)
+    runs-on: ubuntu-latest
+    env:
+      DUCKDB_PATH: /tmp/ci_duckdb.duckdb
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dbt
+        run: pip install dbt-core==1.10.* dbt-duckdb==1.10.*
+
+      - name: dbt deps
+        working-directory: include/dbt/ecommerce
+        run: dbt deps
+
+      # target "dev_core" ja existe em profiles.yml (usado pela DAG
+      # ecommerce_dbt_core_duckdb_dag) - nenhuma mudanca em profiles.yml
+      # foi necessaria para o CI.
+      - name: dbt build (dataset pequeno / seeds)
+        working-directory: include/dbt/ecommerce
+        run: dbt build --target dev_core
+
+      - name: dbt docs generate
+        working-directory: include/dbt/ecommerce
+        run: dbt docs generate --target dev_core
+
+      - name: Upload dbt docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-docs-duckdb
+          path: include/dbt/ecommerce/target
+          retention-days: 14
+
+  postgres:
+    name: dbt build (Postgres)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          # Credenciais efemeras: o container e destruido ao fim do job,
+          # entao uma senha fixa aqui NAO e um segredo real. Nunca reuse
+          # esses valores fora do CI.
+          POSTGRES_USER: ci_user
+          POSTGRES_PASSWORD: ci_pass
+          POSTGRES_DB: ci_ecommerce
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci_user -d ci_ecommerce"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Reaproveita o target "dev_lineage" ja declarado em profiles.yml
+      # (mesmo bloco Postgres orientado a env vars usado pela DAG de
+      # lineage) em vez de criar um target novo so para CI. O schema
+      # "analytics_lineage" e irrelevante aqui: o banco inteiro e
+      # descartado ao fim do job.
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ci_user
+      POSTGRES_PASSWORD: ci_pass
+      POSTGRES_DB: ci_ecommerce
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dbt
+        run: pip install dbt-core==1.10.* dbt-postgres==1.10.*
+
+      - name: dbt deps
+        working-directory: include/dbt/ecommerce
+        run: dbt deps
+
+      - name: dbt build (dataset pequeno / seeds)
+        working-directory: include/dbt/ecommerce
+        run: dbt build --target dev_lineage

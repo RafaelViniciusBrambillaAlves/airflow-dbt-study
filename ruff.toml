@@ -1,0 +1,24 @@
+# ruff.toml
+# Configuracao do ruff (lint + format) para o codigo Python do projeto.
+# Escopo: dags/ e include/. O conteudo em .claude/skills/ e material de
+# referencia da Astronomer (vendorizado), nao codigo deste projeto -
+# fica de fora do lint para nao poluir o CI com violacoes que nao sao
+# nossas para corrigir.
+target-version = "py312"
+line-length = 100
+
+extend-exclude = [
+    ".claude",
+    ".astro",
+    "include/dbt/ecommerce/target",
+    "include/dbt/ecommerce/dbt_packages",
+    "include/dbt/ecommerce/logs",
+    "dags/exampledag.py",
+    "include/ingestion/exampledag.py",
+]
+
+[lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[format]
+quote-style = "double"

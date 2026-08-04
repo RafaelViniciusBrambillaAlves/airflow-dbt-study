@@ -1,0 +1,83 @@
+# .github\workflows\airflow-dag-validation.yml
+
+name: Airflow DAG Validation
+
+on:
+  pull_request:
+    paths:
+      - "dags/**"
+      - "include/**"
+      - "Dockerfile"
+      - "requirements.txt"
+      - "packages.txt"
+      - ".github/workflows/airflow-dag-validation.yml"
+
+# NOTA IMPORTANTE: as 4 DAGs de benchmark usam
+# RenderConfig(load_method=LoadMode.DBT_LS, dbt_executable_path=...)
+# apontando para caminhos absolutos do container Astro
+# (/usr/local/airflow/dbt_venv/bin/dbt, /usr/local/bin/dbt). Um simples
+# "python -c 'from airflow... import DagBag'" rodando direto no runner do
+# GitHub NAO tem esses binarios nesses caminhos, entao o parse falharia
+# por um motivo que nao tem nada a ver com a DAG em si.
+#
+# Por isso este job usa a Astro CLI (`astro dev parse`), que builda a
+# imagem completa a partir do Dockerfile do projeto (incluindo dbt Core +
+# dbt Fusion) e so entao tenta importar as DAGs - e o mesmo mecanismo
+# recomendado para validar DAGs Astro sem subir o Airflow inteiro.
+#
+# NAO TESTADO neste ambiente - antes de confiar neste workflow, rode
+# `astro dev parse` localmente uma vez para confirmar que builda e
+# resolve os caminhos do dbt_venv/Fusion como esperado.
+jobs:
+  parse:
+    name: astro dev parse
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Astro CLI
+        run: curl -sSL install.astronomer.io | sudo bash -s
+
+      - name: Garantir .astro/config.yaml (gitignored, nao versionado)
+        run: |
+          if [ ! -f .astro/config.yaml ]; then
+            mkdir -p .astro
+            cat > .astro/config.yaml <<'EOF'
+          project:
+            name: airflow-dbt-study
+          EOF
+          fi
+
+      - name: astro dev parse
+        run: astro dev parse
+
+  no-duplicate-dag-ids:
+    name: Checar dag_id duplicado
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checar unicidade de dag_id em dags/
+        run: |
+          python3 - <<'EOF'
+          import re
+          import sys
+          import pathlib
+
+          dag_files = sorted(pathlib.Path("dags").glob("*.py"))
+          seen: dict[str, str] = {}
+          duplicated = False
+
+          for path in dag_files:
+              text = path.read_text(encoding="utf-8")
+              for match in re.finditer(r'dag_id\s*=\s*"([^"]+)"', text):
+                  dag_id = match.group(1)
+                  if dag_id in seen:
+                      print(f"DUPLICADO dag_id='{dag_id}': {seen[dag_id]} e {path}")
+                      duplicated = True
+                  else:
+                      seen[dag_id] = str(path)
+
+          print(f"Checados {len(seen)} dag_id(s) em {len(dag_files)} arquivo(s).")
+          sys.exit(1 if duplicated else 0)
+          EOF

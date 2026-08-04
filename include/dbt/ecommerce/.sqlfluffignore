@@ -1,0 +1,7 @@
+target/
+dbt_packages/
+logs/
+# Macros contem definicoes Jinja (nao SQL completo por si so); lintar
+# como SQL solto gera ruido. Se quiser lint de macros no futuro, isso
+# pede regras dedicadas, nao a config atual de models/.
+macros/

@@ -1,0 +1,83 @@
+# .github\workflows\lint.yml
+name: Lint
+
+# So dispara em PR - lint nao precisa rodar em todo push de branch de
+# feature, so quando ha uma PR aberta pedindo revisao.
+on:
+  pull_request:
+    paths:
+      - "dags/**"
+      - "include/**"
+      - "ruff.toml"
+      - ".sqlfluff"
+      - ".sqlfluffignore"
+      - ".yamllint.yml"
+      - ".github/workflows/lint.yml"
+
+jobs:
+  python-lint:
+    name: Ruff (lint + format)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ruff
+        run: pip install ruff==0.8.*
+
+      - name: ruff check
+        run: ruff check dags include
+
+      - name: ruff format --check
+        run: ruff format --check dags include
+
+  yaml-lint:
+    name: yamllint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: yamllint
+        run: >
+          yamllint -c .yamllint.yml
+          dags include airflow_settings.yaml.example .github/workflows
+
+  sql-lint:
+    name: sqlfluff (dbt models)
+    runs-on: ubuntu-latest
+    env:
+      # DuckDB e suficiente so para compilar/parsear os modelos (o
+      # templater dbt do sqlfluff nao precisa de dados reais nas tabelas).
+      DUCKDB_PATH: /tmp/ci_lint.duckdb
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dbt + sqlfluff
+        run: |
+          pip install \
+            dbt-core==1.10.* \
+            dbt-duckdb==1.10.* \
+            sqlfluff==3.* \
+            sqlfluff-templater-dbt==3.*
+
+      - name: dbt deps
+        working-directory: include/dbt/ecommerce
+        run: dbt deps
+
+      - name: sqlfluff lint
+        working-directory: include/dbt/ecommerce
+        run: sqlfluff lint models

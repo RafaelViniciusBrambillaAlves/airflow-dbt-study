@@ -1,0 +1,28 @@
+Badges com todas as tecnologias usadas
+Explicar nossa arquitetura
+Por que Astro CLI em vez de docker-compose puro
+Por que Cosmos em vez de BashOperator chamando dbt run direto
+Por que a divisão em camadas staging/intermediate/marts
+Explica a modelagem de dados que a gente fez
+Explicar (se fizer sentido Kimball, Inmon, e datavault) com exemplos como isso fo usado no projeto
+DuckDB x Postgres, porque faz sentido, melhores casos entre outros
+Diferenca entre o DBT core e DBT fusion
+Diferenca entre RUST e Python
+Explicar dag e fluxo
+Explica o que e lineage para que serve, porque usamos
+Explica brevemente todas as tecnologias e biblitoecas que usamos e para que
+Explicar data lineage para que serve vantagens, como estamos fazendo isso com o marquez,
+Modelagem dbt (schema)
+Explicar ci Cd, vantagens, porque estamos usando
+Explicar cada arquivo de ci cd
+Explicar o que cada uma faz, lint, Ruff, yamllint, sql-lint 
+
+docker exec -it <> bash
+psql -U ecommerce -d ecommerce
+
+
+
+Engenharia de Código e CI/CD
+
+
+Readme - Etapa FINAL

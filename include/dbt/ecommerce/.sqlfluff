@@ -1,0 +1,16 @@
+[sqlfluff]
+templater = dbt
+dialect = duckdb
+sql_file_exts = .sql
+
+[sqlfluff:templater:dbt]
+project_dir = ./
+profiles_dir = ./
+profile = ecommerce
+target = dev_core
+
+[sqlfluff:indentation]
+tab_space_size = 4
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = lower
