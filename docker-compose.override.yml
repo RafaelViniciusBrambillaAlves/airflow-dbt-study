@@ -1,4 +1,3 @@
-
 services:
   postgres-warehouse:
     image: postgres:16

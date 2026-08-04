@@ -2,7 +2,7 @@ ecommerce:
   target: dev_core
 
   outputs:
-    dev_core: 
+    dev_core:
       type: duckdb
       path: "{{ env_var('DUCKDB_PATH') }}"
       schema: analytics_core
@@ -23,7 +23,7 @@ ecommerce:
     #   dbname: "{{ env_var('POSTGRES_DB') }}"
     #   schema: analytics_core
     #   threads: 8
-    
+
     # dev_fusion_pg:
     #   type: postgres
     #   host: "{{ env_var('POSTGRES_HOST') }}"
@@ -33,7 +33,7 @@ ecommerce:
     #   dbname: "{{ env_var('POSTGRES_DB') }}"
     #   schema: analytics_fusion
     #   threads: 8
-    
+
     dev_lineage:
       type: postgres
       host: "{{ env_var('POSTGRES_HOST') }}"
