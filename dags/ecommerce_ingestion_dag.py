@@ -37,6 +37,8 @@ with DAG(
     tags=["ecommerce", "ingestion", "benchmark"],
     doc_md=__doc__,
 ) as dag:
+    start = EmptyOperator(taks_id="start")
+
     load_raw_data = PythonOperator(
         task_id="load_raw_data",
         python_callable=load_benchmark_raw_data,
@@ -52,4 +54,6 @@ with DAG(
         outlets=[ECOMMERCE_RAW_READY_ASSET],  # produtor
     )
 
-    load_raw_data >> raw_data_ready
+    end = EmptyOperator(task_id="end")
+
+    start >> load_raw_data >> raw_data_ready >> end
