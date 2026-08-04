@@ -12,7 +12,7 @@ models:
         tests:
           - not_null
           - unique
-  
+
   - name: stg_products
     description: View limpa, 1:1, sobre raw_products.
     columns:
@@ -25,10 +25,10 @@ models:
           - accepted_values:
               arguments:
                 values: ['Electronics', 'Office', 'Lifestyle']
-    
+
   - name: stg_orders
     description: View limpa, 1:1, sobre raw_orders.
-    columns: 
+    columns:
       - name: order_id
         tests:
           - unique

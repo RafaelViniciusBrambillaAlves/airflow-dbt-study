@@ -1,17 +1,17 @@
-WITH source AS (
-    SELECT * FROM {{ source('raw', 'raw_orders') }}
+with source as (
+    select * from {{ source('raw', 'raw_orders') }}
 ),
 
-renamed AS (
-    SELECT
+renamed as (
+    select
         order_id,
         customer_id,
         product_id,
-        CAST(quantity AS INTEGER) AS quantity,
-        CAST(discount_pct AS DECIMAL(4, 2)) AS discount_pct,
-        LOWER(TRIM(status)) AS order_status,
-        CAST(order_date AS date) AS order_date
-    FROM source
+        CAST(quantity as INTEGER) as quantity,
+        CAST(discount_pct as DECIMAL(4, 2)) as discount_pct,
+        LOWER(TRIM(status)) as order_status,
+        CAST(order_date as DATE) as order_date
+    from source
 )
 
-SELECT * FROM renamed
+select * from renamed

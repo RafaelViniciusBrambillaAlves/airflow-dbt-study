@@ -26,7 +26,7 @@ repos:
     hooks:
       - id: sqlfluff-lint
         name: sqlfluff lint (dbt models)
-        entry: bash -c 'cd include/dbt/ecommerce && sqlfluff lint models'
+        entry: sqlfluff lint --config include/dbt/ecommerce/.sqlfluff include/dbt/ecommerce/models
         language: system
         files: ^include/dbt/ecommerce/models/.*\.sql$
         pass_filenames: false
