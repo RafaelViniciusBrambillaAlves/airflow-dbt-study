@@ -47,9 +47,13 @@ jobs:
       # target "dev_core" ja existe em profiles.yml (usado pela DAG
       # ecommerce_dbt_core_duckdb_dag) - nenhuma mudanca em profiles.yml
       # foi necessaria para o CI.
-      - name: dbt build (dataset pequeno / seeds)
+      - name: dbt seed (dataset pequeno)
         working-directory: include/dbt/ecommerce
-        run: dbt build --target dev_core
+        run: dbt seed --target dev_core
+
+      - name: dbt build (modelos + testes, sem re-carregar seeds)
+        working-directory: include/dbt/ecommerce
+        run: dbt build --target dev_core --exclude resource_type:seed
 
       - name: dbt docs generate
         working-directory: include/dbt/ecommerce
@@ -107,6 +111,10 @@ jobs:
         working-directory: include/dbt/ecommerce
         run: dbt deps
 
-      - name: dbt build (dataset pequeno / seeds)
+      - name: dbt seed (dataset pequeno)
         working-directory: include/dbt/ecommerce
-        run: dbt build --target dev_lineage
+        run: dbt seed --target dev_lineage
+
+      - name: dbt build (modelos + testes, sem re-carregar seeds)
+        working-directory: include/dbt/ecommerce
+        run: dbt build --target dev_lineage --exclude resource_type:seed
