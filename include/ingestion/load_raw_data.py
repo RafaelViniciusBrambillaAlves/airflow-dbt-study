@@ -5,12 +5,12 @@ Carrega os DataFrames gerados por generate_fake_data.py DIRETO nas tabelas
 raw_customers / raw_products / raw_orders do warehouse de destino, sem
 passar pelo `dbt seed`. Isso é o que torna esse caminho uma ingestao de
 verdade, e nao um seed disfarcado (ver docstring de generate_fake_data.py).
- 
+
 Cada funcao recebe o schema fisico exato que o dbt vai ler via
 `source('raw', ...)` - o mesmo schema calculado por
 `"{{ target.schema }}_raw"` em models/staging/_staging__sources.yml.
 Ex: target dev_core -> schema analytics_core -> schema_raw = analytics_core_raw.
- 
+
 Suporta os dois warehouses do projeto:
   - DuckDB: escreve direto no arquivo .duckdb via biblioteca duckdb (mesmo
     arquivo apontado por DUCKDB_PATH/profiles.yml).
@@ -20,12 +20,12 @@ Suporta os dois warehouses do projeto:
 """
 
 import io
-import pandas as pd
-import duckdb 
-from typing import Mapping
 
-from sqlalchemy import text
+import duckdb
+import pandas as pd
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+from sqlalchemy import text
+
 
 # Mapeando pandas dtype -> tipo Postgres
 def _pandas_dtype_to_pg(dtype) -> str:
@@ -41,12 +41,8 @@ def _pandas_dtype_to_pg(dtype) -> str:
 
 
 def _build_create_table_sql(schema: str, table: str, df: pd.DataFrame) -> str:
-    cols = ", ".join(
-        f'"{col}" {_pandas_dtype_to_pg(dtype)}'
-        for col, dtype in df.dtypes.items()
-    )
+    cols = ", ".join(f'"{col}" {_pandas_dtype_to_pg(dtype)}' for col, dtype in df.dtypes.items())
     return f'CREATE TABLE "{schema}"."{table}" ({cols})'
-
 
 
 def load_to_duckdb(dataframes: dict[str, pd.DataFrame], duckdb_path: str, schema: str) -> None:
@@ -55,7 +51,7 @@ def load_to_duckdb(dataframes: dict[str, pd.DataFrame], duckdb_path: str, schema
     CREATE OR REPLACE TABLE garante idempotencia: rodar de novo com o mesmo
     dataset (ou um dataset diferente) sempre deixa a tabela consistente com
     o DataFrame gerado nesta execucao, sem acumular linhas de runs antigos.
- 
+
     Usa uma unica conexao para todas as tabelas, respeitando o lock de
     escritor unico do DuckDB (mesma restricao ja documentada nas DAGs de
     DuckDB, max_active_tasks=1).
@@ -65,9 +61,7 @@ def load_to_duckdb(dataframes: dict[str, pd.DataFrame], duckdb_path: str, schema
         conn.execute(f"CREATE SCHEMA IF NOT EXISTS {schema}")
         for table_name, df in dataframes.items():
             conn.register("df_tmp", df)
-            conn.execute(
-                F"CREATE OR REPLACE TABLE {schema}.{table_name} AS SELECT * FROM df_tmp"
-            )
+            conn.execute(f"CREATE OR REPLACE TABLE {schema}.{table_name} AS SELECT * FROM df_tmp")
             conn.unregister("df_tmp")
     finally:
         conn.close()
@@ -88,18 +82,16 @@ def load_to_postgres(dataframes: dict[str, pd.DataFrame], conn_id: str, schema: 
         - rollback automático em caso de erro
     """
     # Toda a logica de conexao do Postgres usando o Connection do Airflow
-    hook = PostgresHook(postgres_conn_id = conn_id)
+    hook = PostgresHook(postgres_conn_id=conn_id)
     # Objeto SQLAlchemy Engine
     engine = hook.get_sqlalchemy_engine()
 
     # Etapa 1: DDL (CREATE SCHEMA / DROP / CREATE TABLE)
-    with engine.begin() as conn: # commit automatico / rollback 
+    with engine.begin() as conn:  # commit automatico / rollback
         conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
 
         for table_name, df in dataframes.items():
-            conn.execute(
-                text(f'DROP TABLE IF EXISTS "{schema}"."{table_name}" CASCADE')
-            )
+            conn.execute(text(f'DROP TABLE IF EXISTS "{schema}"."{table_name}" CASCADE'))
 
             conn.execute(text(_build_create_table_sql(schema, table_name, df)))
 
@@ -112,18 +104,15 @@ def load_to_postgres(dataframes: dict[str, pd.DataFrame], conn_id: str, schema: 
             for table_name, df in dataframes.items():
                 buffer = io.StringIO()
 
-                df.to_csv(buffer, index = False, header = False, na_rep = "")
+                df.to_csv(buffer, index=False, header=False, na_rep="")
 
                 buffer.seek(0)
 
                 cursor.copy_expert(
-                    f'COPY "{schema}"."{table_name}" '
-                    f"FROM STDIN WITH CSV NULL AS ''",
-                    buffer
+                    f'COPY "{schema}"."{table_name}" ' f"FROM STDIN WITH CSV NULL AS ''", buffer
                 )
                 print(
-                    f"[ingestao] {schema}.{table_name}: "
-                    f"{len(df)} linhas carregadas via COPY."
+                    f"[ingestao] {schema}.{table_name}: " f"{len(df)} linhas carregadas via COPY."
                 )
         pg_conn.commit()
     except Exception:

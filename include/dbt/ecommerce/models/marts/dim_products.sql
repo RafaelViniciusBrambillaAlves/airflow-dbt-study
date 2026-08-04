@@ -1,6 +1,6 @@
-SELECT
+select
     product_id,
     product_name,
     category,
     unit_price
-FROM {{ ref('stg_products') }}
+from {{ ref('stg_products') }}

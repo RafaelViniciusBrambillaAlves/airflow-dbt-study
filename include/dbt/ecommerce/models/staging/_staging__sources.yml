@@ -13,7 +13,7 @@ sources:
     tables:
       - name: raw_customers
         description: Uma linha por cliente, como recebida do sistema de origem.
-        columns: 
+        columns:
           - name: customer_id
             description: Chave natural do sistema de origem.
             tests:

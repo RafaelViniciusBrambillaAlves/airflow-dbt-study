@@ -1,14 +1,14 @@
-WITH source AS (
-    SELECT * FROM {{ source('raw', 'raw_products') }}
+with source as (
+    select * from {{ source('raw', 'raw_products') }}
 ),
 
-renamed AS (
-    SELECT
+renamed as (
+    select
         product_id,
-        TRIM(product_name) AS product_name,
-        TRIM(category) AS category,
-        CAST(unit_price AS DECIMAL(10, 2)) AS unit_price
-    FROM source
+        TRIM(product_name) as product_name,
+        TRIM(category) as category,
+        CAST(unit_price as DECIMAL(10, 2)) as unit_price
+    from source
 )
 
-SELECT * FROM renamed
+select * from renamed

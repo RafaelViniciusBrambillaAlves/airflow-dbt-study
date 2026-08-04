@@ -18,3 +18,7 @@ logs/
 airflow_settings.yaml
 
 .claude/settings.local.json
+
+ecommerce.duckdb
+
+package-lock.yml

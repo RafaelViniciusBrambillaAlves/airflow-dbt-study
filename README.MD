@@ -341,6 +341,73 @@ simplicidade de manutenção sobre a garantia adicional de não esquecer
 de trocar o volume — mitigado pelo log explícito do branch escolhido em
 cada execução.
 
+## Guardrails do projeto (Claude Code)
+
+Este projeto usa **hooks** do Claude Code (`.claude/settings.json` +
+`.claude/hooks/`) para reforçar de forma determinística — não apenas via
+instrução em prompt — as regras de "nunca sobrescrever configuração
+existente sem confirmação":
+
+- `.env` (credenciais reais) é negado para leitura e escrita por padrão.
+- `profiles.yml`, `dbt_project.yml`, `docker-compose.override.yml`,
+  `airflow_settings.yaml` e as DAGs em `dags/*.py` pedem confirmação
+  explícita antes de qualquer edição.
+- Comandos destrutivos no Bash (`rm -rf`, `git push --force`,
+  `git reset --hard`, `docker volume rm`, `docker system prune`) são
+  bloqueados; `dbt run/build --full-refresh` pede confirmação.
+- Depois de editar qualquer arquivo em `include/dbt/ecommerce/`, um hook
+  roda `dbt parse` automaticamente para avisar cedo se a mudança quebrou
+  o projeto dbt.
+
+`.claude/settings.json` é versionado e vale para qualquer pessoa
+trabalhando no repositório; `.claude/settings.local.json` (git-ignorado)
+é para preferências pessoais de máquina. Qualquer mudança em
+`.claude/settings.json` deve passar por revisão como código de CI, já
+que hooks rodam automaticamente e sem sandbox.
+
+5. Tabela-resumo dos guardrails
+Evento	Dispara em	Ação	Script
+PreToolUse	Read de .env	deny	block_env_access.py
+PreToolUse	Edit/Write/MultiEdit de .env	deny	block_env_access.py
+PreToolUse	Edit/Write/MultiEdit de profiles.yml, dbt_project.yml, docker-compose.override.yml, airflow_settings.yaml, dags/*.py	ask	protect_sensitive_configs.py
+PreToolUse	Bash com rm -rf, git push --force, git reset --hard, docker volume rm, docker system prune	deny	block_dangerous_bash.py
+PreToolUse	Bash com dbt run/build --full-refresh	ask	block_dangerous_bash.py
+PostToolUse	Edit/Write/MultiEdit dentro de include/dbt/ecommerce/	roda dbt parse e reporta (não bloqueia)	dbt_parse_check.py
+
+## CI/CD
+
+![CI](https://github.com/<seu-usuario>/<seu-repo>/actions/workflows/dbt-ci.yml/badge.svg)
+
+O projeto usa GitHub Actions com 4 workflows independentes, todos disparados em `pull_request`:
+
+| Workflow | Valida | Quando roda |
+|---|---|---|
+| `lint.yml` | Python (ruff), YAML (yamllint), SQL/Jinja do dbt (sqlfluff) | mudanças em `dags/`, `include/` |
+| `dbt-ci.yml` | `dbt build` completo (seed + run + test) contra **DuckDB e Postgres** (dataset pequeno) | mudanças em `include/dbt/ecommerce/`, `include/ingestion/` |
+| `airflow-dag-validation.yml` | Import das DAGs (`astro dev parse`) + `dag_id` duplicado | mudanças em `dags/`, `include/`, `Dockerfile` |
+| `docker-build.yml` | A imagem builda (dbt Core + dbt Fusion + deps do Airflow) | mudanças em `Dockerfile`, `requirements.txt`, `packages.txt` |
+
+O `dbt-ci.yml` **nunca** roda contra o dataset "large" (~10.000.000 linhas) — isso é benchmark manual, não parte do pipeline de PR.
+
+### Rodando os mesmos checks localmente
+
+```bash
+pip install pre-commit
+pre-commit install
+pre-commit run --all-files
+```
+
+`sqlfluff` (parte do `pre-commit`) precisa de `dbt deps` já rodado em `include/dbt/ecommerce/` e de `DUCKDB_PATH` configurado (ver `.env.example`).
+
+### Checks obrigatórios recomendados (branch protection)
+
+Configurar em *Settings → Branches → Branch protection rules* para `main`:
+- `Lint / python-lint`, `Lint / yaml-lint`, `Lint / sql-lint`
+- `dbt CI / duckdb`, `dbt CI / postgres`
+- `Airflow DAG Validation / parse`, `Airflow DAG Validation / no-duplicate-dag-ids`
+
+`docker-build.yml` fica **opcional** por enquanto — falhas de build podem vir de quebras upstream (ex: uma dependência do dbt mudando de versão) sem culpa da PR; promova a obrigatório depois de estabilizar.
+
 ## Próximos passos
 
 - Substituir os seeds por uma fonte de dados real ou gerada dinamicamente

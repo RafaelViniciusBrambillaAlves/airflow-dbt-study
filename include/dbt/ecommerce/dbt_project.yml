@@ -60,7 +60,7 @@ seeds:
     raw_orders:
       +column_types:
         discount_pct: numeric(10, 2)
-    
+
 models:
   ecommerce:
     staging:
