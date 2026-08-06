@@ -15,10 +15,7 @@ airflow:
       conn_password: "pass123"
       conn_port: 5433
       conn_extra:
-  pools:
-    - pool_name:
-      pool_slot:
-      pool_description:
+      
   variables:
     # Controla qual volume de dados as 4 DAGs de benchmark carregam.
     # "small" (default se a Variable nao existir) -> dbt seed, comportamento
