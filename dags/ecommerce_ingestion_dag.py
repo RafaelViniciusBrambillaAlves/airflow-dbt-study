@@ -37,7 +37,7 @@ with DAG(
     tags=["ecommerce", "ingestion", "benchmark"],
     doc_md=__doc__,
 ) as dag:
-    start = EmptyOperator(taks_id="start")
+    start = EmptyOperator(task_id="start")
 
     load_raw_data = PythonOperator(
         task_id="load_raw_data",
