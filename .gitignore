@@ -21,4 +21,6 @@ airflow_settings.yaml
 
 ecommerce.duckdb
 
-package-lock.yml
+include/dbt/ecommerce/package-lock.yml
+
+.txt

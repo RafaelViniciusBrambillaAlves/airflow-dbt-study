@@ -26,10 +26,7 @@ NOTA SOBRE order_status
 O schema.yml de stg_orders (models/staging/_staging__models.yml) só aceita
 ['completed', 'pending', 'cancelled'] em accepted_values. O seed pequeno
 original (raw_orders.csv) tem uma linha com status 'returned', que na
-verdade já viola esse teste - provavelmente um bug pré-existente no
-dataset de exemplo, não corrigido aqui por não fazer parte do escopo deste
-prompt. Para não introduzir falhas de teste no dataset grande, este gerador
-usa apenas os 3 status aceitos pelo teste.
+verdade já viola esse teste
 """
 
 import argparse
